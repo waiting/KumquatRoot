@@ -7,3 +7,5 @@ Platform: Python+wxPython supported
 Language: python  
 Member: Mr.Wid, WT  
 
+## Design
+...
