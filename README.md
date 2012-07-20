@@ -4,6 +4,6 @@ KumquatRoot is open source software, it writen by python+wxPython.  It search fi
 
 ## Project
 Platform: Python+wxPython supported  
-Language£ºpython  
-Member£ºWid, WT  
+Language: python  
+Member: Mr.Wid, WT  
 
