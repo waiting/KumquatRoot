@@ -133,9 +133,11 @@ class MainDlg(wx.Dialog):
             size = ( groupbox.Rect[0] - 10 - (rect2[0]+rect2[2] + 10), 37 )
         )
 
-
-
-if __name__ == '__main__':
+def test():
     app = wx.PySimpleApp()
     dlg = MainDlg()
     dlg.ShowModal()
+
+
+if __name__ == '__main__':
+    test()
