@@ -2,7 +2,7 @@
 #coding:utf-8
 
 #-------------------------------------------------------------------------------
-# Name:        ProgressBar.py
+# Name:        SearchingDlg.py
 # Purpose:
 #
 # Author:      Mr.Wid
