@@ -19,8 +19,8 @@ class MainDlg(wx.Dialog):
         )
         self.InitUIs()
 
-    # 初始化UI #################################################################
     def InitUIs(self):
+        "初始化UI"
         # first line -----------------------------------------------------------
         label = wx.StaticText(
             self,

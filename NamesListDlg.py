@@ -19,8 +19,8 @@ class NamesListDlg(wx.Dialog):
         )
         self.InitUIs()
 
-    # 初始化UI #################################################################
     def InitUIs(self):
+        "初始化UI"
         label = wx.StaticText(
             self,
             label = u'每行一个不带点号的扩展名，支持正则表达式。',
