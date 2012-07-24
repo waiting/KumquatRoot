@@ -5,7 +5,10 @@
 #主界面对话框
 #-----------------------------------------------
 
+import os
 import wx
+from xml.dom import minidom
+from NamesListDlg import NamesListDlg
 
 class MainDlg(wx.Dialog):
     def __init__(self):
@@ -69,12 +72,12 @@ class MainDlg(wx.Dialog):
             pos = ( rect2[0] + rect2[2] + 10, rect2[1] + 5 )
         )
         # forth line -----------------------------------------------------------
-        self._rdoUseMatchMode = wx.RadioBox(
+        self._rdoboxUseMatchMode = wx.RadioBox(
             self,
             pos = ( rect2[0], rect2[1] + rect2[3] + 2 ),
             choices = [ u'普通精确匹配', u'正则表达式匹配' ]
         )
-        rect2 = self._rdoUseMatchMode.Rect
+        rect2 = self._rdoboxUseMatchMode.Rect
 
         # list report ----------------------------------------------------------
         lblTest = wx.StaticText(
@@ -118,14 +121,14 @@ class MainDlg(wx.Dialog):
         btnTemp.Size = ( box.Rect[2] - 30, btnTemp.Size[1] )
         btnTemp.Position = ( box.Rect[0] + (box.Rect[2] - btnTemp.Rect[2]) / 2, rect2[1] + rect2[3] + 6 )
 
-        self._rdoUseListMode = wx.RadioBox(
+        self._rdoboxUseListMode = wx.RadioBox(
             self,
             choices = [ u'使用黑名单', u'使用白名单' ],
             style = wx.RA_VERTICAL
         )
-        self._rdoUseListMode.Position = ( box.Rect[0] + (box.Rect[2] - self._rdoUseListMode.Rect[2]) / 2, btnTemp.Position[1] + btnTemp.Size[1] )
+        self._rdoboxUseListMode.Position = ( box.Rect[0] + (box.Rect[2] - self._rdoboxUseListMode.Rect[2]) / 2, btnTemp.Position[1] + btnTemp.Size[1] )
 
-        rect2 = self._rdoUseMatchMode.Rect
+        rect2 = self._rdoboxUseMatchMode.Rect
         self._btnSearch = wx.Button(
             self,
             label = u'搜索(&S)',
@@ -134,11 +137,67 @@ class MainDlg(wx.Dialog):
         )
 
         self.Bind( wx.EVT_BUTTON, self.onBtnBrowse, self._btnBrowse )
+        self.Bind( wx.EVT_BUTTON, self.onBtnBlackListSettings, self._btnBlackListSettings )
+        self.Bind( wx.EVT_BUTTON, self.onBtnWhiteListSettings, self._btnWhiteListSettings )
 
+    def loadNamesList( self, isBlack ):
+        u'加载名单设置'
+        try:
+            settingsFile = open(u'settings.xml')
+        except IOError, e:
+            settingsFile = open( u'settings.xml', 'w+' )
+            settingsFile.write(u'<settings></settings>')
+            settingsFile.seek( 0, os.SEEK_SET )
+
+        doc = minidom.parse(settingsFile)
+        List = doc.documentElement.getElementsByTagName(u'blacklist' if isBlack else u'whitelist')
+        if List:
+            List = List[0]
+            patterns = List.getElementsByTagName(u'pattern')
+            return [pattern.firstChild.nodeValue for pattern in patterns]
+        else:
+            return []
+
+    def writeNamesList( self, isBlack, patterns ):
+        settingsFile = open( u'settings.xml', 'r+' )
+        doc = minidom.parse(settingsFile)
+        settingsFile.truncate(0)
+        settingsFile.seek( 0, os.SEEK_SET )
+        newList = doc.createElement(u'blacklist' if isBlack else u'whitelist')
+        oldList = doc.documentElement.getElementsByTagName(u'blacklist' if isBlack else u'whitelist')
+        if oldList:
+            oldList = oldList[0]
+            doc.documentElement.replaceChild( newList, oldList )
+        else:
+            doc.documentElement.appendChild(newList)
+
+        for pattern in patterns:
+            patNode = doc.createElement(u'pattern')
+            newList.appendChild(patNode)
+            patText = doc.createTextNode(pattern)
+            patNode.appendChild(patText)
+
+        settingsFile.write( doc.toxml('utf-8') )
+
+
+    # 事件响应 -----------------------------------------------------------------
     def onBtnBrowse( self, evt ):
         dirDlg = wx.DirDialog( self, message = u'请选择一个待搜索目录' )
         if dirDlg.ShowModal() == wx.ID_OK:
             self._txtPathRoot.Label = dirDlg.Path
+
+    def onBtnBlackListSettings( self, evt ):
+        dlg = NamesListDlg( self, True )
+        dlg._txtNamesList.Label = os.linesep.join( self.loadNamesList(True) )
+        if dlg.ShowModal() == wx.ID_OK:
+            self.writeNamesList( True, dlg._txtNamesList.Label.splitlines() )
+
+    def onBtnWhiteListSettings( self, evt ):
+        dlg = NamesListDlg( self, False )
+        dlg._txtNamesList.Label = os.linesep.join( self.loadNamesList(False) )
+        if dlg.ShowModal() == wx.ID_OK:
+            self.writeNamesList( False, dlg._txtNamesList.Label.splitlines() )
+
 
 def test():
     app = wx.PySimpleApp()

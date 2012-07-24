@@ -51,6 +51,11 @@ version: 1.0.0
 > getFiles()  
   setGlobalText()
 
+#### 事件响应方法
+同成员方法相同，前面加上'on'。
+> onClick()  
+  onDocumentComplete()
+
 ### 类型名
 采用单词首字母大写式命名。
 > class DirectUI:  
