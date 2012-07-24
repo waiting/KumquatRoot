@@ -25,6 +25,21 @@ version: 1.0.0
   _isFile  
   _give
 
+### 控件变量名
+控件变量名采用控件缩写作为前缀的命名法。  
+各个控件的缩写:
+* 按钮 btn
+* 文本框 txt
+* 标签(StaticText) lbl
+* 列表框 lst
+* 组合框 cbo
+* 复选框 chk
+* 单选框 rdo
+* 列表控件 lstctl
+* 树形控件 tree
+* 框(StaticBox) box
+* 动画控件 ani
+
 ### 方法/函数命名
 #### 独立函数
 采用*传统C风格*命名。
