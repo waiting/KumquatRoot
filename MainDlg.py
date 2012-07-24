@@ -23,7 +23,7 @@ class MainDlg(wx.Dialog):
         self.initUIs()
 
     def initUIs(self):
-        "初始化UI"
+        u"初始化UI"
         # first line -----------------------------------------------------------
         lblTest = wx.StaticText(
             self,
@@ -145,7 +145,7 @@ class MainDlg(wx.Dialog):
         try:
             settingsFile = open(u'settings.xml')
         except IOError, e:
-            settingsFile = open( u'settings.xml', 'w+' )
+            settingsFile = open( u'settings.xml', u'w+' )
             settingsFile.write(u'<settings></settings>')
             settingsFile.seek( 0, os.SEEK_SET )
 
@@ -159,7 +159,7 @@ class MainDlg(wx.Dialog):
             return []
 
     def writeNamesList( self, isBlack, patterns ):
-        settingsFile = open( u'settings.xml', 'r+' )
+        settingsFile = open( u'settings.xml', u'r+' )
         doc = minidom.parse(settingsFile)
         settingsFile.truncate(0)
         settingsFile.seek( 0, os.SEEK_SET )
@@ -184,19 +184,19 @@ class MainDlg(wx.Dialog):
     def onBtnBrowse( self, evt ):
         dirDlg = wx.DirDialog( self, message = u'请选择一个待搜索目录' )
         if dirDlg.ShowModal() == wx.ID_OK:
-            self._txtPathRoot.Label = dirDlg.Path
+            self._txtPathRoot.Value = dirDlg.Path
 
     def onBtnBlackListSettings( self, evt ):
         dlg = NamesListDlg( self, True )
-        dlg._txtNamesList.Label = os.linesep.join( self.loadNamesList(True) )
+        dlg._txtNamesList.Value = os.linesep.join( self.loadNamesList(True) )
         if dlg.ShowModal() == wx.ID_OK:
-            self.writeNamesList( True, dlg._txtNamesList.Label.splitlines() )
+            self.writeNamesList( True, dlg._txtNamesList.Value.splitlines() )
 
     def onBtnWhiteListSettings( self, evt ):
         dlg = NamesListDlg( self, False )
-        dlg._txtNamesList.Label = os.linesep.join( self.loadNamesList(False) )
+        dlg._txtNamesList.Value = os.linesep.join( self.loadNamesList(False) )
         if dlg.ShowModal() == wx.ID_OK:
-            self.writeNamesList( False, dlg._txtNamesList.Label.splitlines() )
+            self.writeNamesList( False, dlg._txtNamesList.Value.splitlines() )
 
 
 def test():
