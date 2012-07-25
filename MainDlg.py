@@ -9,6 +9,7 @@ import os
 import wx
 from xml.dom import minidom
 from NamesListDlg import NamesListDlg
+from SearchingDlg import SearchingDlg
 
 class MainDlg(wx.Dialog):
     def __init__(self):
@@ -23,7 +24,7 @@ class MainDlg(wx.Dialog):
         self.initUIs()
 
     def initUIs(self):
-        u"初始化UI"
+        "初始化UI"
         # first line -----------------------------------------------------------
         lblTest = wx.StaticText(
             self,
@@ -139,9 +140,10 @@ class MainDlg(wx.Dialog):
         self.Bind( wx.EVT_BUTTON, self.onBtnBrowse, self._btnBrowse )
         self.Bind( wx.EVT_BUTTON, self.onBtnBlackListSettings, self._btnBlackListSettings )
         self.Bind( wx.EVT_BUTTON, self.onBtnWhiteListSettings, self._btnWhiteListSettings )
+        self.Bind( wx.EVT_BUTTON, self.onBtnSearch, self._btnSearch )
 
     def loadNamesList( self, isBlack ):
-        u'加载名单设置'
+        '加载名单设置'
         try:
             settingsFile = open(u'settings.xml')
         except IOError, e:
@@ -177,10 +179,42 @@ class MainDlg(wx.Dialog):
             patText = doc.createTextNode(pattern)
             patNode.appendChild(patText)
 
-        settingsFile.write( doc.toxml('utf-8') )
+        settingsFile.write( doc.toxml(u'utf-8') )
 
+    def addResult( self, fileName, filePath, fileAttr ):
+        lstctl = self._lstctlResults
+        index = lstctl.ItemCount
+        lstctl.InsertStringItem( index, unicode(fileName) )
+        lstctl.SetStringItem( index, 1, unicode(filePath) )
+        lstctl.SetStringItem( index, 2, unicode(fileAttr) )
+
+    def clearResults( self ):
+        self._lstctlResults.DeleteAllItems()
 
     # 事件响应 -----------------------------------------------------------------
+
+
+    def onBtnSearch( self, evt ):
+        "搜索按钮响应"
+        #取得变量信息
+        params = {}
+        params[u'UseMatchMode'] = self._rdoboxUseMatchMode.Selection # 0:精确匹配, 1:正则表达式
+        params[u'UseListMode'] = self._rdoboxUseListMode.Selection # 0:黑名单, 1:白名单
+        params[u'IsUseMatchName'] = self._chkUseMatchName.Value
+        params[u'IsSearchWords'] = self._chkSearchWords.Value
+        params[u'FilterExtList'] = self.loadNamesList( params[u'UseListMode'] == 0 ) # 加载过滤名单
+        params[u'RootPath'] = self._txtPathRoot.Value # 搜索路径
+        params[u'RootPath'] = params[u'RootPath'] if params[u'RootPath'] else os.path.abspath(os.path.curdir)
+
+        #打开SearchingDlg，进行搜索
+        searchDlg = SearchingDlg( self, params, self )
+        if searchDlg.ShowModal() == wx.ID_ABORT:
+            wx.MessageBox( u'搜索终止！', u'搜索状态' )
+        else:
+            wx.MessageBox(u'搜索完毕！', u'搜索状态' )
+
+
+
     def onBtnBrowse( self, evt ):
         dirDlg = wx.DirDialog( self, message = u'请选择一个待搜索目录' )
         if dirDlg.ShowModal() == wx.ID_OK:

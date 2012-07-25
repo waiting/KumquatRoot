@@ -12,7 +12,7 @@ class App(wx.App):
     def OnInit(self):
         dlg = MainDlg()
         dlg.ShowModal()
-        return False # 模态对话框，不需要进入主消息循环，直接返回False
+        return True # 模态对话框，不需要进入主消息循环，直接返回False
 
 
 def main():

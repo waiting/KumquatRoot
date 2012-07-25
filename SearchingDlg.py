@@ -6,113 +6,91 @@
 # Purpose:
 #
 # Author:      Mr.Wid
-#
+# Modify:      WT
 # Created:     22-07-2012
 # Copyright:   (c) Mr.Wid 2012
 # Licence:
 #-------------------------------------------------------------------------------
 
 import wx
+from threading import *
 
-class PressPauseButton(Exception):
-    pass
-
-class PressStopButton(Exception):
-    pass
 
 class SearchingDlg(wx.Dialog):
-    #-----------------------初始化进度条窗口-----------------------------
-    def __init__(
-        self,
-        parent = None,
-    ):
+    def __init__( self, parent, params, mainDlg ):
         wx.Dialog.__init__(
             self,
             parent,
             title = u'正在搜索...',
-            size = (500, 240),
+            size = ( 500, 240 ),
             style = wx.CAPTION
         )
-        self.CreateProgressBar()    #创建进度条
+        self._params = params
+        self._mainDlg = mainDlg
+        self.initUIs()
 
-        '''
-        #-------------封装测试-------------
-        self.setProgressLength(80)      #设置进度条进度测试
-        sclab=ur'D:\Aevelop\bython\Yourse\jython基础教程\Zython Socket编程.txt'
-        self.setScarchingFileName(sclab)     #设置正在搜索的容测试
-        self.setTotalFileNumber(u'12345')    #设置文件总计测试
-        self.setSearchedFileNumber(u'99999')   #设置已扫描数总计测试
-        self.setSurplusFileNumber(u'23654')      #设置剩余文件总计测试
-        self.setUsedTime(u'24秒')        #设置已用时长测试
-        self.setSurplusTime(u'8765秒')   #设置剩余时长测试
-        self.setConformNumber(u'0')
-        '''
+    def initUIs( self ):
+        "初始化UI"
+        self._gauge = wx.Gauge(
+            self,
+            range = 100,
+            pos = ( 25, 25 ),
+            size = ( 370, 30 )
+        )
+        self._gauge.BezelFace = 2    #在多数平台上都无效果
+        self._gauge.ShadowWidth = 2  #在多数平台上都无效果
 
-    #------------------------创建进度条-----------------------------------------
-    def CreateProgressBar(self):
-        self.count = 0      #进度条计数
-        self.gauge = wx.Gauge(self, -1, 100, (25, 25), (370, 30))
-        self.gauge.SetBezelFace(2)
-        self.gauge.SetShadowWidth(2)
+        self._btnPause = wx.Button(
+            self,
+            label = u'暂停',
+            pos = ( 410, 10 )
+        )
+        self.Bind( wx.EVT_BUTTON, self.onBtnPause, self._btnPause )
 
-        self.CreateStopPauseButton()    #创建终止、暂停按钮
-        self.CreateStatusLabel()    #创建任务状态标签
-
-    #------------------------创建终止、暂停按钮-------------------------
-    def CreateStopPauseButton(self):
-        self.StopSearchButton = wx.Button(
+        self._btnAbort = wx.Button(
             self,
             label = u'终止',
-            pos = (410, 40),
+            pos = ( 410, 40 )
         )
-        self.Bind(wx.EVT_BUTTON, self.ClickStopButton, self.StopSearchButton)
+        self.Bind( wx.EVT_BUTTON, self.onBtnAbort, self._btnAbort )
 
-        self.PauseSearchButton = wx.Button(
-            self ,
-            label = u'暂停',
-            pos = (410, 10),
-        )
-        self.Bind(wx.EVT_BUTTON, self.ClickPauseButton, self.PauseSearchButton)
-
-    #-------------------------文件状态标签-------------------------
-    def CreateStatusLabel(self):
-        self.CurrentSearchStatusLabel = wx.StaticText(
+        #-------------------------状态标签-------------------------
+        self._lblCurrentSearch = wx.StaticText(
             self,
             label = u'正在搜索:',
-            pos = (25, 85)
+            pos = ( 25, 85 )
         )
 
-        self.CurrentTotalFileLabel = wx.StaticText(
+        self._lblTotalFiles = wx.StaticText(
             self,
             label = u'文件总计:',
-            pos = (30, 130)
+            pos = ( 30, 130 )
         )
-        self.CurrentPassedFileLabel = wx.StaticText(
+        self._lblScanFiles = wx.StaticText(
             self,
             label = u'已扫描数:',
-            pos = (180, 130)
+            pos = ( 180, 130 )
         )
-        self.CurrentLastFileLabel = wx.StaticText(
+        self._lblSurplusFiles = wx.StaticText(
             self,
             label = u'剩余文件:',
-            pos = (330, 130)
+            pos = ( 330, 130 )
         )
 
-        #-------------------------时间状态标签-------------------------
-        self.CurrentUsedTimeStatusLabel = wx.StaticText(
+        self._lblUsedTime = wx.StaticText(
             self,
             label = u'已用时长:',
-            pos = (30, 160)
+            pos = ( 30, 160 )
         )
-        self.CurrentLastTimeStatusLabel = wx.StaticText(
+        self._lblSurplusTime = wx.StaticText(
             self,
             label = u'剩余时长:',
             pos = (180, 160)
         )
-        self.CurrentConformStatusLabel = wx.StaticText(
+        self._lblConformFiles = wx.StaticText(
             self,
             label = u'符合条件:',
-            pos = (330, 160)
+            pos = ( 330, 160 )
         )
 
         groupBox = wx.StaticBox(
@@ -122,113 +100,54 @@ class SearchingDlg(wx.Dialog):
             size = (465, 90)
         )
 
-    #-------------------------总事件方法-------------------------#
-
-    #-------------------------任务状态方法开始-------------------
-    '''
-    从'任务状态方法开始'到'任务状态方法结束'部分为面板上'任务状态'框架内的各个标签的内容设置方法
-    '''
-
-    #设置进度条已完成进度
-    def setProgressLength(self , percent = 0):
-        '''
-        方法名称:setProgressLength
-        原型:setProgressLength(self, int percent)
-        调用示例:SearchingDlg.setProgressLength(80)
-        '''
-        if percent >= 100:
-            MissionDoneDlg = wx.MessageDialog(
-                parent = None ,
-                message = u'任务完成!共找到符合条件的结果%d条!'%0 ,
-                caption = u'任务完成' ,
-                style = wx.OK|wx.ICON_INFORMATION
-            )
-            MissionDoneDlg.ShowModal()
-            MissionDoneDlg.Destroy()
-            self.Destroy()
-        self.gauge.SetValue(percent)
-
+    #设置进度条范围
+    def setGaugeRange( self, range ):
+        self._gauge.Range = range
+    #设置进度条值
+    def setGaugeValue( self, value ):
+        self._gauge.Value = value
     #设置"正在搜索"标签内容
-    def setScarchingFileName(self, content = None):
-        '''
-        #方法名称:setScarchingFileName
-        原型:setScarchingFileName(self, string content)
-        调用示例:SearchingDlg.setScarchingFileName('wxPython')
-        '''
-        self.CurrentSearchStatusLabel.SetLabel(u'正在搜索:' + str(content))
+    def setCurrentSearch( self, content = None ):
+        self._lblCurrentSearch.Label = u'正在搜索:' + unicode(content)
 
     #设置"文件总计"标签内容
-    def setTotalFileNumber(self, number = None):
-        '''
-        #方法名称:setTotalFileNumber
-        原型:setTotalFileNumber(self, string number)
-        调用示例:SearchingDlg.setTotalFileNumber(u'12345')
-        '''
-        self.CurrentTotalFileLabel.SetLabel(u'文件总计:' + str(number))
+    def setTotalFiles( self, number = None ):
+        self._lblTotalFiles.Label = u'文件总计:' + unicode(number)
 
     #设置"已扫面数"标签内容
-    def setSearchedFileNumber(self, number = None):
-        '''
-        #方法名称:setSearchedFileNumber
-        原型:setSearchedFileNumber(self, string number)
-        调用示例:SearchingDlg.setSearchedFileNumber(u'12345')
-        '''
-        self.CurrentPassedFileLabel.SetLabel(u'已扫描数:' + str(number))
+    def setScanFiles( self, number = None ):
+        self._lblScanFiles.Label = u'已扫描数:' + unicode(number)
 
     #设置"剩余文件"标签内容
-    def setSurplusFileNumber(self, number = None):
-        '''
-        #方法名称:setSurplusFileNumber
-        原型:setSurplusFileNumber(self, string number)
-        调用示例:SearchingDlg.setSurplusFileNumber(u'12345')
-        '''
-        self.CurrentLastFileLabel.SetLabel(u'剩余文件:' + str(number))
+    def setSurplusFiles( self, number = None ):
+        self._lblSurplusFiles.Label = u'剩余文件:' + unicode(number)
 
     #设置"已用时长"标签内容
-    def setUsedTime(self, number = None):
-        '''
-        #方法名称:setUsedTime
-        原型:setUsedTime(self, string number)
-        调用示例:SearchingDlg.setUsedTime(u'24秒')
-        '''
-        self.CurrentUsedTimeStatusLabel.SetLabel(u'已用时长:' + str(number))
+    def setUsedTime( self, number = None ):
+        self._lblUsedTime.Label = u'已用时长:' + unicode(number)
 
     #设置"剩余时长"标签内容
-    def setSurplusTime(self, number = None):
-        '''
-        #方法名称:setSurplusTime
-        原型:setSurplusTime(self, string number)
-        调用示例:SearchingDlg.setSurplusTime(u'12345')
-        '''
-        self.CurrentLastTimeStatusLabel.SetLabel(u'剩余时长:' + str(number))
+    def setSurplusTime( self, number = None ):
+        self._lblSurplusTime.Label = u'剩余时长:' + unicode(number)
 
     #设置"符合条件"标签内容
-    def setConformNumber(self, number = None):
-        '''
-        #方法名称:setConformNumber
-        原型:setConformNumber(self, string number)
-        调用示例:SearchingDlg.setConformNumber(u'12345')
-        '''
-        self.CurrentConformStatusLabel.SetLabel(u'符合条件:' + str(number))
-    #-------------------------任务状态方法结束-------------------
+    def setConformFiles( self, number = None ):
+        self._lblConformFiles.Label = u'符合条件:' + unicode(number)
 
-    #-------------------------按钮方法开始-----------------------
-    '''
-    从'按钮方法开始'到'按钮方法结束'部分为面板上'暂停'、'终止'两个按钮的方法
-    '''
 
-    def ClickPauseButton(self, event):  #点击"暂停"按钮时引发暂停异常
-        raise PressPauseButton
+    def onBtnPause( self, event ):  #点击"暂停"按钮时引发暂停异常
+        print u'暂停'
 
-    def ClickStopButton(self, event):   #点击"终止"按钮时引发终止异常
-        raise PressStopButton
-    #-------------------------按钮方法结束-----------------------
+    def onBtnAbort( self, event ):   #点击"终止"按钮时引发终止异常
+        print u'终止'
+        self.EndModal(wx.ID_ABORT)
 
 
 def test():
     app = wx.PySimpleApp()
-    dlg = SearchingDlg()
-    dlg.ShowModal()
+    dlg = SearchingDlg( None, {}, None )
+    if dlg.ShowModal() == wx.ID_ABORT:
+        wx.MessageBox(u'终止')
 
 if __name__ == '__main__':
     test()
