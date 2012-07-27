@@ -7,6 +7,7 @@
 try:
     import os
     import wx
+    import KumquatRoot
     from xml.dom import minidom
     from NamesListDlg import NamesListDlg
     from SearchingDlg import SearchingDlg
@@ -113,18 +114,18 @@ class MainDlg(wx.Dialog):
             size = ( self.ClientRect[2] - 10 - ( rect2[0] + rect2[2] + 5 ), self._lstctlResults.Rect[1] - 10 - (rect2[1] - 5) )
         )
 
-        btnTemp = self._btnWhiteListSettings = wx.Button(
+        btnTemp = self._btnBlackListSettings = wx.Button(
             self,
-            label = u'编辑白名单',
+            label = u'编辑黑名单',
         )
         btnTemp.Size = ( box.Rect[2] - 30, btnTemp.Size[1] )
         btnTemp.Position = ( box.Rect[0] + (box.Rect[2] - btnTemp.Rect[2]) / 2, box.Rect[1] + 25 )
 
         rect2 = btnTemp.Rect
 
-        btnTemp = self._btnBlackListSettings = wx.Button(
+        btnTemp = self._btnWhiteListSettings = wx.Button(
             self,
-            label = u'编辑黑名单',
+            label = u'编辑白名单',
         )
         btnTemp.Size = ( box.Rect[2] - 30, btnTemp.Size[1] )
         btnTemp.Position = ( box.Rect[0] + (box.Rect[2] - btnTemp.Rect[2]) / 2, rect2[1] + rect2[3] + 6 )
@@ -163,7 +164,11 @@ class MainDlg(wx.Dialog):
         if List:
             List = List[0]
             patterns = List.getElementsByTagName(u'pattern')
-            return [pattern.firstChild.nodeValue for pattern in patterns]
+            pats = []
+            for pat in patterns:
+                pats.append( pat.firstChild.nodeValue if pat.firstChild else u'' )
+            #return [pattern.firstChild.nodeValue for pattern in patterns]
+            return pats
         else:
             return []
 
@@ -189,19 +194,20 @@ class MainDlg(wx.Dialog):
         settingsFile.write( doc.toxml(u'utf-8') )
 
     def addResult( self, fileName, filePath, fileAttr ):
+        KumquatRoot.GlobalLock.acquire()
         lstctl = self._lstctlResults
         index = lstctl.ItemCount
-        try:
-            lstctl.InsertStringItem( index, str(fileName) )
-            lstctl.SetStringItem( index, 1, str(filePath) )
-            lstctl.SetStringItem( index, 2, str(fileAttr) )
-            self.ResultsLabel = lstctl.ItemCount
-        except UnicodeDecodeError, e:
-            pass
+        lstctl.InsertStringItem( index, fileName )
+        lstctl.SetStringItem( index, 1, filePath )
+        lstctl.SetStringItem( index, 2, fileAttr )
+        self.ResultsLabel = lstctl.ItemCount
+        KumquatRoot.GlobalLock.release()
 
     def clearResults( self ):
+        KumquatRoot.GlobalLock.acquire()
         self._lstctlResults.DeleteAllItems()
         self.ResultsLabel = 0
+        KumquatRoot.GlobalLock.release()
 
     def setResultsLabel( self, count = 0 ):
         self._lblResults.Label = u'搜索结果(%d):' % count
@@ -217,7 +223,9 @@ class MainDlg(wx.Dialog):
         params['UseMatchMode'] = self._rdoboxUseMatchMode.Selection # 0:精确匹配, 1:正则表达式
         params['UseListMode'] = self._rdoboxUseListMode.Selection # 0:黑名单, 1:白名单
         params['IsUseMatchName'] = self._chkUseMatchName.Value
+        params['MatchName'] = self._txtMatchName.Value
         params['IsSearchWords'] = self._chkSearchWords.Value
+        params['SearchWords'] = self._txtSearchWords.Value
         params['FilterExtList'] = self.loadNamesList( params['UseListMode'] == 0 ) # 加载过滤名单
         params['RootPath'] = self._txtPathRoot.Value # 搜索路径
         params['RootPath'] = params['RootPath'] if params['RootPath'] else os.path.abspath(os.path.curdir)
@@ -240,13 +248,15 @@ class MainDlg(wx.Dialog):
 
     def onBtnBlackListSettings( self, evt ):
         dlg = NamesListDlg( self, True )
-        dlg._txtNamesList.Value = os.linesep.join( self.loadNamesList(True) )
+        items = self.loadNamesList(True)
+        dlg._txtNamesList.Value = os.linesep.join(items) + os.linesep if len(items) else u''
         if dlg.ShowModal() == wx.ID_OK:
             self.writeNamesList( True, dlg._txtNamesList.Value.splitlines() )
 
     def onBtnWhiteListSettings( self, evt ):
         dlg = NamesListDlg( self, False )
-        dlg._txtNamesList.Value = os.linesep.join( self.loadNamesList(False) )
+        items = self.loadNamesList(False)
+        dlg._txtNamesList.Value = os.linesep.join(items) + os.linesep if len(items) else u''
         if dlg.ShowModal() == wx.ID_OK:
             self.writeNamesList( False, dlg._txtNamesList.Value.splitlines() )
 
