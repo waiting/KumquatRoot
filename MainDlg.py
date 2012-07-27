@@ -4,12 +4,16 @@
 #date=2012-07-22
 #主界面对话框
 #-----------------------------------------------
+try:
+    import os
+    import wx
+    import KumquatRoot
+    from xml.dom import minidom
+    from NamesListDlg import NamesListDlg
+    from SearchingDlg import SearchingDlg
+except ImportError:
+    pass
 
-import os
-import wx
-from xml.dom import minidom
-from NamesListDlg import NamesListDlg
-from SearchingDlg import SearchingDlg
 
 class MainDlg(wx.Dialog):
     def __init__(self):
@@ -51,7 +55,11 @@ class MainDlg(wx.Dialog):
             pos = ( rect[0], rect[1] + rect[3] + 16 )
         )
         rect = lblTest.Rect
-        self._txtMatchName = wx.TextCtrl( self, pos = ( rect[0] + rect[2] + 8, rect[1] - 3 ), size = ( 200, 22 ) )
+        self._txtMatchName = wx.TextCtrl(
+            self,
+            pos = ( rect[0] + rect[2] + 8, rect[1] - 3 ),
+            size = ( 200, 22 )
+        )
         rect2 = self._txtMatchName.Rect
         self._chkUseMatchName = wx.CheckBox(
             self,
@@ -81,9 +89,9 @@ class MainDlg(wx.Dialog):
         rect2 = self._rdoboxUseMatchMode.Rect
 
         # list report ----------------------------------------------------------
-        lblTest = wx.StaticText(
+        self._lblResults = lblTest = wx.StaticText(
             self,
-            label = u'搜索结果:',
+            label = u'搜索结果(0):',
             pos = ( rect[0], rect2[1] + rect2[3] + 10 )
         )
         rect = lblTest.Rect
@@ -96,7 +104,7 @@ class MainDlg(wx.Dialog):
         rect2 = self._lstctlResults.Rect
         self._lstctlResults.InsertColumn( col = 0, heading = u'文件名', width = 100 )
         self._lstctlResults.InsertColumn( col = 1, heading = u'文件路径', width = rect2[2] - 230 )
-        self._lstctlResults.InsertColumn( col = 2, heading = u'文件属性', width = rect2[2] - ( 100 + rect2[2] - 230 ) - 5 )
+        self._lstctlResults.InsertColumn( col = 2, heading = u'文件属性', width = rect2[2] - ( 100 + rect2[2] - 230 ) - 22 )
         # white/black list -----------------------------------------------------
         rect2 = self._btnBrowse.Rect
         box = wx.StaticBox(
@@ -106,18 +114,18 @@ class MainDlg(wx.Dialog):
             size = ( self.ClientRect[2] - 10 - ( rect2[0] + rect2[2] + 5 ), self._lstctlResults.Rect[1] - 10 - (rect2[1] - 5) )
         )
 
-        btnTemp = self._btnWhiteListSettings = wx.Button(
+        btnTemp = self._btnBlackListSettings = wx.Button(
             self,
-            label = u'编辑白名单',
+            label = u'编辑黑名单',
         )
         btnTemp.Size = ( box.Rect[2] - 30, btnTemp.Size[1] )
         btnTemp.Position = ( box.Rect[0] + (box.Rect[2] - btnTemp.Rect[2]) / 2, box.Rect[1] + 25 )
 
         rect2 = btnTemp.Rect
 
-        btnTemp = self._btnBlackListSettings = wx.Button(
+        btnTemp = self._btnWhiteListSettings = wx.Button(
             self,
-            label = u'编辑黑名单',
+            label = u'编辑白名单',
         )
         btnTemp.Size = ( box.Rect[2] - 30, btnTemp.Size[1] )
         btnTemp.Position = ( box.Rect[0] + (box.Rect[2] - btnTemp.Rect[2]) / 2, rect2[1] + rect2[3] + 6 )
@@ -156,7 +164,11 @@ class MainDlg(wx.Dialog):
         if List:
             List = List[0]
             patterns = List.getElementsByTagName(u'pattern')
-            return [pattern.firstChild.nodeValue for pattern in patterns]
+            pats = []
+            for pat in patterns:
+                pats.append( pat.firstChild.nodeValue if pat.firstChild else u'' )
+            #return [pattern.firstChild.nodeValue for pattern in patterns]
+            return pats
         else:
             return []
 
@@ -182,15 +194,25 @@ class MainDlg(wx.Dialog):
         settingsFile.write( doc.toxml(u'utf-8') )
 
     def addResult( self, fileName, filePath, fileAttr ):
+        KumquatRoot.GlobalLock.acquire()
         lstctl = self._lstctlResults
         index = lstctl.ItemCount
-        lstctl.InsertStringItem( index, unicode(fileName) )
-        lstctl.SetStringItem( index, 1, unicode(filePath) )
-        lstctl.SetStringItem( index, 2, unicode(fileAttr) )
+        lstctl.InsertStringItem( index, fileName )
+        lstctl.SetStringItem( index, 1, filePath )
+        lstctl.SetStringItem( index, 2, fileAttr )
+        self.ResultsLabel = lstctl.ItemCount
+        KumquatRoot.GlobalLock.release()
 
     def clearResults( self ):
+        KumquatRoot.GlobalLock.acquire()
         self._lstctlResults.DeleteAllItems()
+        self.ResultsLabel = 0
+        KumquatRoot.GlobalLock.release()
 
+    def setResultsLabel( self, count = 0 ):
+        self._lblResults.Label = u'搜索结果(%d):' % count
+
+    ResultsLabel = property( fset = setResultsLabel )
     # 事件响应 -----------------------------------------------------------------
 
 
@@ -198,14 +220,18 @@ class MainDlg(wx.Dialog):
         "搜索按钮响应"
         #取得变量信息
         params = {}
-        params[u'UseMatchMode'] = self._rdoboxUseMatchMode.Selection # 0:精确匹配, 1:正则表达式
-        params[u'UseListMode'] = self._rdoboxUseListMode.Selection # 0:黑名单, 1:白名单
-        params[u'IsUseMatchName'] = self._chkUseMatchName.Value
-        params[u'IsSearchWords'] = self._chkSearchWords.Value
-        params[u'FilterExtList'] = self.loadNamesList( params[u'UseListMode'] == 0 ) # 加载过滤名单
-        params[u'RootPath'] = self._txtPathRoot.Value # 搜索路径
-        params[u'RootPath'] = params[u'RootPath'] if params[u'RootPath'] else os.path.abspath(os.path.curdir)
+        params['UseMatchMode'] = self._rdoboxUseMatchMode.Selection # 0:精确匹配, 1:正则表达式
+        params['UseListMode'] = self._rdoboxUseListMode.Selection # 0:黑名单, 1:白名单
+        params['IsUseMatchName'] = self._chkUseMatchName.Value
+        params['MatchName'] = self._txtMatchName.Value
+        params['IsSearchWords'] = self._chkSearchWords.Value
+        params['SearchWords'] = self._txtSearchWords.Value
+        params['FilterExtList'] = self.loadNamesList( params['UseListMode'] == 0 ) # 加载过滤名单
+        params['RootPath'] = self._txtPathRoot.Value # 搜索路径
+        params['RootPath'] = params['RootPath'] if params['RootPath'] else os.path.abspath(os.path.curdir)
 
+        #清空结果列表
+        self.clearResults()
         #打开SearchingDlg，进行搜索
         searchDlg = SearchingDlg( self, params, self )
         if searchDlg.ShowModal() == wx.ID_ABORT:
@@ -222,13 +248,15 @@ class MainDlg(wx.Dialog):
 
     def onBtnBlackListSettings( self, evt ):
         dlg = NamesListDlg( self, True )
-        dlg._txtNamesList.Value = os.linesep.join( self.loadNamesList(True) )
+        items = self.loadNamesList(True)
+        dlg._txtNamesList.Value = os.linesep.join(items) + os.linesep if len(items) else u''
         if dlg.ShowModal() == wx.ID_OK:
             self.writeNamesList( True, dlg._txtNamesList.Value.splitlines() )
 
     def onBtnWhiteListSettings( self, evt ):
         dlg = NamesListDlg( self, False )
-        dlg._txtNamesList.Value = os.linesep.join( self.loadNamesList(False) )
+        items = self.loadNamesList(False)
+        dlg._txtNamesList.Value = os.linesep.join(items) + os.linesep if len(items) else u''
         if dlg.ShowModal() == wx.ID_OK:
             self.writeNamesList( False, dlg._txtNamesList.Value.splitlines() )
 

@@ -1,5 +1,5 @@
-﻿#!/usr/bin/python
-#coding:utf-8
+#!/usr/bin/python
+#coding=utf8
 
 #-------------------------------------------------------------------------------
 # Name:        SearchingDlg.py
@@ -11,9 +11,104 @@
 # Copyright:   (c) Mr.Wid 2012
 # Licence:
 #-------------------------------------------------------------------------------
+try:
+    import wx
+    import thread
+    import Queue
+    import os
+    import re
+    import KumquatRoot
+    from MainDlg import MainDlg
+except ImportError:
+    pass
 
-import wx
-from threading import *
+# 搜索线程
+def cb_searching( *args, **kwargs ):
+    "cb_searching( SearchingDlg searchDlg, MainDlg mainDlg, params )"
+    searchDlg, mainDlg, params = args
+    queue = searchDlg._queue
+    while True:
+        filePath = queue.get()
+        if None == filePath:
+            searchDlg.isFinish = True
+            break
+        # 进行搜索
+        if params and params['IsSearchWords']:
+            pass
+        KumquatRoot.GlobalLock.acquire()
+        searchDlg.setCurrentSearch(filePath)
+        searchDlg._scanFiles += 1
+        searchDlg._surplusFiles = searchDlg._totalFiles - searchDlg._scanFiles
+        searchDlg.setScanFiles(searchDlg._scanFiles)
+        searchDlg.setSurplusFiles(searchDlg._surplusFiles)
+        KumquatRoot.GlobalLock.release()
+
+        if mainDlg:
+            mainDlg.addResult( os.path.basename(filePath), os.path.dirname(filePath), u'None' )
+
+        KumquatRoot.GlobalLock.acquire()
+        isAbort = searchDlg._isAbort
+        KumquatRoot.GlobalLock.release()
+        if isAbort:
+            break
+
+
+# 统计线程
+def cb_statistic( *args, **kwargs ):
+    "cb_statistic( SearchingDlg searchDlg, MainDlg mainDlg, params )"
+    searchDlg, mainDlg, params = args
+    queue = searchDlg._queue
+    if params:
+        for rootPath, dirNames, fileNames in os.walk(params['RootPath']):
+            KumquatRoot.GlobalLock.acquire()
+            isAbort = searchDlg._isAbort
+            KumquatRoot.GlobalLock.release()
+            if isAbort:
+                break
+            for fileName in fileNames:
+                # 判断根目录的情况
+                if re.match( '^\\w:\\\\$', rootPath ):
+                    filePath = rootPath + fileName
+                else:
+                    filePath = rootPath + os.path.sep + fileName
+                #进行名单过滤
+                pats = []
+                for pat in params['FilterExtList']:
+                    if not pat:
+                        pats.append(r'^[^\.]+$')
+                    else:
+                        pats.append( r'\.' + pat + '$' )
+                patStr = '|'.join(pats)
+                if patStr:
+                    if params['UseListMode'] == 0: # 黑名单
+                        if re.search( patStr, fileName, re.IGNORECASE ):
+                            continue
+                    elif params['UseListMode'] == 1: # 白名单
+                        if not re.search( patStr, fileName, re.IGNORECASE ):
+                            continue
+
+                #进行文件名过滤
+                if params['IsUseMatchName']:
+                    if params['MatchName']:
+                        print `params['MatchName']`
+                        if not re.search( params['MatchName'], fileName, re.IGNORECASE ):
+                            continue
+                KumquatRoot.GlobalLock.acquire()
+                searchDlg._totalFiles += 1
+                searchDlg.setTotalFiles(searchDlg._totalFiles)
+                KumquatRoot.GlobalLock.release()
+
+                queue.put(filePath)
+
+                KumquatRoot.GlobalLock.acquire()
+                isAbort = searchDlg._isAbort
+                KumquatRoot.GlobalLock.release()
+                if isAbort:
+                    break
+
+    #放入一个None，让搜索线程退出
+    queue.put(None)
+
 
 
 class SearchingDlg(wx.Dialog):
@@ -25,9 +120,22 @@ class SearchingDlg(wx.Dialog):
             size = ( 500, 240 ),
             style = wx.CAPTION
         )
-        self._params = params
-        self._mainDlg = mainDlg
         self.initUIs()
+
+        self._params = params # 主界面上的各项参数
+        self._mainDlg = mainDlg # 控制主界面
+        self._queue = Queue.Queue(KumquatRoot.QueueCount) # 待搜索文件队列
+
+        self.isFinish = False
+        self._isAbort = False
+        self._totalFiles = 0
+        self._scanFiles = 0
+        self._surplusFiles = 0
+        self._conformFiles = 0
+
+        thread.start_new_thread( cb_statistic, ( self, mainDlg, params ) )
+        thread.start_new_thread( cb_searching, ( self, mainDlg, params ) )
+
 
     def initUIs( self ):
         "初始化UI"
@@ -39,20 +147,21 @@ class SearchingDlg(wx.Dialog):
         )
         self._gauge.BezelFace = 2    #在多数平台上都无效果
         self._gauge.ShadowWidth = 2  #在多数平台上都无效果
+        self._gauge.Range = 100
 
-        self._btnPause = wx.Button(
+        self._btnControl = wx.Button(
             self,
             label = u'暂停',
             pos = ( 410, 10 )
         )
-        self.Bind( wx.EVT_BUTTON, self.onBtnPause, self._btnPause )
+        self.Bind( wx.EVT_BUTTON, self.onBtnControl, self._btnControl )
 
-        self._btnAbort = wx.Button(
+        self._btnExit = wx.Button(
             self,
             label = u'终止',
             pos = ( 410, 40 )
         )
-        self.Bind( wx.EVT_BUTTON, self.onBtnAbort, self._btnAbort )
+        self.Bind( wx.EVT_BUTTON, self.onBtnExit, self._btnExit )
 
         #-------------------------状态标签-------------------------
         self._lblCurrentSearch = wx.StaticText(
@@ -100,54 +209,75 @@ class SearchingDlg(wx.Dialog):
             size = (465, 90)
         )
 
-    #设置进度条范围
     def setGaugeRange( self, range ):
+        "设置'进度条'范围"
         self._gauge.Range = range
-    #设置进度条值
-    def setGaugeValue( self, value ):
-        self._gauge.Value = value
-    #设置"正在搜索"标签内容
-    def setCurrentSearch( self, content = None ):
-        self._lblCurrentSearch.Label = u'正在搜索:' + unicode(content)
 
-    #设置"文件总计"标签内容
+    def setGaugeValue( self, value ):
+        "设置'进度条'值"
+        self._gauge.Value = value
+
+    def setCurrentSearch( self, content = None ):
+        "设置'正在搜索'标签内容"
+        try:
+            self._lblCurrentSearch.Label = u'正在搜索:' + unicode( str(content), KumquatRoot.LocalEncoding )
+        except UnicodeEncodeError, e:
+            #print 'EncodeError:', content
+            self._lblCurrentSearch.Label = u'正在搜索:' + content
+            pass
+        except UnicodeDecodeError, e:
+            print 'DecodeError:', content
+            pass
+
     def setTotalFiles( self, number = None ):
+        "设置'文件总计'标签内容"
         self._lblTotalFiles.Label = u'文件总计:' + unicode(number)
 
-    #设置"已扫面数"标签内容
     def setScanFiles( self, number = None ):
+        "设置'已扫面数'标签内容"
         self._lblScanFiles.Label = u'已扫描数:' + unicode(number)
 
-    #设置"剩余文件"标签内容
     def setSurplusFiles( self, number = None ):
+        "设置'剩余文件'标签内容"
         self._lblSurplusFiles.Label = u'剩余文件:' + unicode(number)
 
-    #设置"已用时长"标签内容
     def setUsedTime( self, number = None ):
+        "设置'已用时长'标签内容"
         self._lblUsedTime.Label = u'已用时长:' + unicode(number)
 
-    #设置"剩余时长"标签内容
     def setSurplusTime( self, number = None ):
+        "设置'剩余时长'标签内容"
         self._lblSurplusTime.Label = u'剩余时长:' + unicode(number)
 
-    #设置"符合条件"标签内容
     def setConformFiles( self, number = None ):
+        "设置'符合条件'标签内容"
         self._lblConformFiles.Label = u'符合条件:' + unicode(number)
 
+    def getIsFinish( self ):
+        return self._isFinish
+    def setIsFinish( self, value ):
+        self._isFinish = value
+        self._btnExit.Label = u'退出' if value else u'终止'
 
-    def onBtnPause( self, event ):  #点击"暂停"按钮时引发暂停异常
+    isFinish = property( getIsFinish, setIsFinish, doc = "是否完成搜索" )
+
+    def onBtnControl( self, evt ):
+
         print u'暂停'
 
-    def onBtnAbort( self, event ):   #点击"终止"按钮时引发终止异常
-        print u'终止'
-        self.EndModal(wx.ID_ABORT)
+    def onBtnExit( self, evt ):
+        if self.isFinish:
+            self.EndModal(wx.ID_EXIT)
+        else:
+            self._isAbort = True
+            self.EndModal(wx.ID_ABORT)
 
 
 def test():
     app = wx.PySimpleApp()
-    dlg = SearchingDlg( None, {}, None )
+    dlg = SearchingDlg( None, { 'RootPath':'F:\\', 'FilterExtList':[], 'IsUseMatchName':False, 'IsSearchWords':True }, None )
     if dlg.ShowModal() == wx.ID_ABORT:
-        wx.MessageBox(u'终止')
+        pass
 
 if __name__ == '__main__':
     test()

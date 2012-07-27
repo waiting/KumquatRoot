@@ -23,7 +23,7 @@ class NamesListDlg(wx.Dialog):
         "初始化UI"
         lblTemp = wx.StaticText(
             self,
-            label = u'每行一个不带点号的扩展名，支持正则表达式。',
+            label = u'每行一个不带点号的扩展名，支持正则。空行表示无扩展名文件。',
             pos = ( 10, 5 )
         )
         self._txtNamesList = wx.TextCtrl(
