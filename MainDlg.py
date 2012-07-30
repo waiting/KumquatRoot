@@ -1,18 +1,28 @@
 #-----------------------------------------------
-#coding=utf8
-#author=WT
-#date=2012-07-22
-#主界面对话框
+# coding: utf8
+# author: WT
+# date: 2012-07-22
+# desc: 主界面对话框
 #-----------------------------------------------
+
 try:
     import os
     import wx
     import KumquatRoot
-    from xml.dom import minidom
-    from NamesListDlg import NamesListDlg
-    from SearchingDlg import SearchingDlg
-except ImportError:
-    pass
+    import xml.dom.minidom
+    import NamesListDlg
+    import SearchingDlg
+except ImportError, e:
+    print e
+
+
+class UpdateUiEvent(wx.PyCommandEvent):
+    EVT_UpdateUiType = wx.NewEventType()
+    EVT_UPDATEUI = wx.PyEventBinder(EVT_UpdateUiType)
+    def __init__( self, *args ):
+        wx.PyCommandEvent.__init__( self, self.EVT_UpdateUiType )
+        self._args = args
+
 
 
 class MainDlg(wx.Dialog):
@@ -150,6 +160,8 @@ class MainDlg(wx.Dialog):
         self.Bind( wx.EVT_BUTTON, self.onBtnWhiteListSettings, self._btnWhiteListSettings )
         self.Bind( wx.EVT_BUTTON, self.onBtnSearch, self._btnSearch )
 
+        self.Bind( UpdateUiEvent.EVT_UPDATEUI, self.onUpdateUi )
+
     def loadNamesList( self, isBlack ):
         '加载名单设置'
         try:
@@ -159,7 +171,7 @@ class MainDlg(wx.Dialog):
             settingsFile.write(u'<settings></settings>')
             settingsFile.seek( 0, os.SEEK_SET )
 
-        doc = minidom.parse(settingsFile)
+        doc = xml.dom.minidom.parse(settingsFile)
         List = doc.documentElement.getElementsByTagName(u'blacklist' if isBlack else u'whitelist')
         if List:
             List = List[0]
@@ -174,7 +186,7 @@ class MainDlg(wx.Dialog):
 
     def writeNamesList( self, isBlack, patterns ):
         settingsFile = open( u'settings.xml', u'r+' )
-        doc = minidom.parse(settingsFile)
+        doc = xml.dom.minidom.parse(settingsFile)
         settingsFile.truncate(0)
         settingsFile.seek( 0, os.SEEK_SET )
         newList = doc.createElement(u'blacklist' if isBlack else u'whitelist')
@@ -193,28 +205,35 @@ class MainDlg(wx.Dialog):
 
         settingsFile.write( doc.toxml(u'utf-8') )
 
+    def notifyAddResult( self, fileName, filePath, fileAttr ):
+        wx.PostEvent( self, UpdateUiEvent( '_lstctlResults', '', ( fileName, filePath, fileAttr ) ) )
+        KumquatRoot.do_events()
+
     def addResult( self, fileName, filePath, fileAttr ):
-        KumquatRoot.GlobalLock.acquire()
         lstctl = self._lstctlResults
         index = lstctl.ItemCount
         lstctl.InsertStringItem( index, fileName )
         lstctl.SetStringItem( index, 1, filePath )
         lstctl.SetStringItem( index, 2, fileAttr )
         self.ResultsLabel = lstctl.ItemCount
-        KumquatRoot.GlobalLock.release()
 
     def clearResults( self ):
-        KumquatRoot.GlobalLock.acquire()
         self._lstctlResults.DeleteAllItems()
         self.ResultsLabel = 0
-        KumquatRoot.GlobalLock.release()
 
     def setResultsLabel( self, count = 0 ):
         self._lblResults.Label = u'搜索结果(%d):' % count
 
     ResultsLabel = property( fset = setResultsLabel )
     # 事件响应 -----------------------------------------------------------------
-
+    def onUpdateUi( self, evt ):
+        ctrlName, prop, value = evt._args
+        control = self.__getattribute__(ctrlName)
+        if control == self._lstctlResults:
+            fileName, filePath, fileAttr = value
+            self.addResult( fileName, filePath, fileAttr )
+        else:
+            control.__setattr__( prop, value )
 
     def onBtnSearch( self, evt ):
         "搜索按钮响应"
@@ -233,11 +252,11 @@ class MainDlg(wx.Dialog):
         #清空结果列表
         self.clearResults()
         #打开SearchingDlg，进行搜索
-        searchDlg = SearchingDlg( self, params, self )
+        searchDlg = SearchingDlg.SearchingDlg( self, params, self )
         if searchDlg.ShowModal() == wx.ID_ABORT:
             wx.MessageBox( u'搜索终止！', u'搜索状态' )
         else:
-            wx.MessageBox(u'搜索完毕！', u'搜索状态' )
+            pass #wx.MessageBox(u'搜索完毕！', u'搜索状态' )
 
 
 
@@ -247,14 +266,14 @@ class MainDlg(wx.Dialog):
             self._txtPathRoot.Value = dirDlg.Path
 
     def onBtnBlackListSettings( self, evt ):
-        dlg = NamesListDlg( self, True )
+        dlg = NamesListDlg.NamesListDlg( self, True )
         items = self.loadNamesList(True)
         dlg._txtNamesList.Value = os.linesep.join(items) + os.linesep if len(items) else u''
         if dlg.ShowModal() == wx.ID_OK:
             self.writeNamesList( True, dlg._txtNamesList.Value.splitlines() )
 
     def onBtnWhiteListSettings( self, evt ):
-        dlg = NamesListDlg( self, False )
+        dlg = NamesListDlg.NamesListDlg( self, False )
         items = self.loadNamesList(False)
         dlg._txtNamesList.Value = os.linesep.join(items) + os.linesep if len(items) else u''
         if dlg.ShowModal() == wx.ID_OK:
