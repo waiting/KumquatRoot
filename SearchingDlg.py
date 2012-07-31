@@ -40,6 +40,8 @@ def cb_searching( *args, **kwargs ):
     queue = searchDlg._queue
 
     while True:
+        searchDlg._pause.wait() # 暂停事件锁
+
         filePath = queue.get()
         if None == filePath:
             searchDlg.isFinish = True
@@ -47,26 +49,28 @@ def cb_searching( *args, **kwargs ):
 
         searchDlg._scanFiles += 1
         searchDlg.currentSearch = filePath
+
         try:
             fileSize = os.path.getsize(filePath)
         except:
-            fileSize = KumquatRoot.Limit.FileSize + 1
-            print filePath
+            fileSize = None
+
         # 进行搜索
         isConform = False
         if params and params['IsSearchWords']:
-            if not ( KumquatRoot.Limit.FileSize > 0 and fileSize > KumquatRoot.Limit.FileSize ):
-                searchDlg._conformFiles += 1
-                isConform = True
-            else:
-                pass
+            if fileSize != None:
+                if not ( KumquatRoot.Limit.FileSize > 0 and fileSize > KumquatRoot.Limit.FileSize ):
+                    searchDlg._conformFiles += 1
+                    isConform = True
+                else:
+                    pass
         else:
             searchDlg._conformFiles += 1
             isConform = True
 
         if isConform:
             try:
-                tup = ( os.path.basename(filePath), os.path.dirname(filePath), u'Size:%s' % bytes_unit(fileSize) )
+                tup = ( os.path.basename(filePath), os.path.dirname(filePath), u'Size:%s' % ( bytes_unit(fileSize) if fileSize != None else u'Error' ) )
             except:
                 tup = ( 'Failed', 'Failed', 'Failed' )
             if mainDlg: mainDlg._resultItems.append(tup)
@@ -82,6 +86,7 @@ def cb_statistic( *args, **kwargs ):
     queue = searchDlg._queue
     if params:
         for rootPath, dirNames, fileNames in os.walk(params['RootPath']):
+            searchDlg._pause.wait() # 暂停事件锁
             if KumquatRoot.Limit.TotalFiles > 0 and searchDlg._totalFiles == KumquatRoot.Limit.TotalFiles:
                 break
 
@@ -89,6 +94,7 @@ def cb_statistic( *args, **kwargs ):
                 break
 
             for fileName in fileNames:
+                searchDlg._pause.wait() # 暂停事件锁
                 # 判断根目录的情况
                 if re.match( '^\\w:\\\\$', rootPath ):
                     filePath = rootPath + fileName
@@ -115,7 +121,7 @@ def cb_statistic( *args, **kwargs ):
                 #进行文件名过滤
                 if params['IsUseMatchName']:
                     if params['MatchName']:
-                        print `params['MatchName']`
+                        #print `params['MatchName']`
                         if not re.search( params['MatchName'], fileName, re.IGNORECASE ):
                             continue
 
@@ -152,12 +158,19 @@ class SearchingDlg(wx.Dialog):
         self.isFinish = False
         self.isAbort = False
 
+        self._currentSearch = u''
         self._totalFiles = 0
         self._scanFiles = 0
         self._surplusFiles = 0
         self._conformFiles = 0
         self._usedTime = 0
         self._surplusTime = 0
+
+        self._pauseFlag = False
+        self._pause = threading.Event()
+
+        if self._pauseFlag == False:
+            self._pause.set()
 
         self._statistic = threading.Thread( None, cb_statistic, None, ( self, mainDlg, params ) )
         self._searching = threading.Thread( None, cb_searching, None, ( self, mainDlg, params ) )
@@ -377,13 +390,27 @@ class SearchingDlg(wx.Dialog):
             self.setConformFilesLabel(self._conformFiles)
 
     def onBtnControl( self, evt ):
-        print u'暂停'
+        if self._pauseFlag:# 当处于暂停中...
+            self._pause.set() # 唤醒线程
+            self._timer.Start(KumquatRoot.Limit.QueryInterval) # 开启定时器
+            self._startTime = time.clock() # 计算耗时用
+            self._pauseFlag = False
+            self._btnControl.Label = u'暂停'
+        else:
+            self._pause.clear() # 沉睡线程
+            self._timer.Stop() # 停止定时器
+            self._pauseFlag = True
+            self._btnControl.Label = u'继续'
 
     def onBtnExit( self, evt ):
         if self.isFinish:
             self.EndModal(wx.ID_EXIT)
         else:
             self.isAbort = True
+            self._pause.set() # 唤醒沉睡的线程，以便退出
+            self._statistic.join()
+            self._searching.join()
+            self._timer.Stop() # 停止定时器
             self.EndModal(wx.ID_ABORT)
 
 

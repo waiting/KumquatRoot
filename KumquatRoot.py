@@ -37,7 +37,6 @@ class App(wx.App):
 
 
 def main():
-    print os.name
     app = App(False)
 
 if __name__ == '__main__':
