@@ -15,15 +15,12 @@ try:
 except ImportError, e:
     print e
 
-
 class UpdateUiEvent(wx.PyCommandEvent):
     EVT_UpdateUiType = wx.NewEventType()
     EVT_UPDATEUI = wx.PyEventBinder(EVT_UpdateUiType)
     def __init__( self, *args ):
         wx.PyCommandEvent.__init__( self, self.EVT_UpdateUiType )
         self._args = args
-
-
 
 class MainDlg(wx.Dialog):
     def __init__(self):
@@ -160,8 +157,6 @@ class MainDlg(wx.Dialog):
         self.Bind( wx.EVT_BUTTON, self.onBtnWhiteListSettings, self._btnWhiteListSettings )
         self.Bind( wx.EVT_BUTTON, self.onBtnSearch, self._btnSearch )
 
-        self.Bind( UpdateUiEvent.EVT_UPDATEUI, self.onUpdateUi )
-
     def loadNamesList( self, isBlack ):
         '加载名单设置'
         try:
@@ -205,10 +200,6 @@ class MainDlg(wx.Dialog):
 
         settingsFile.write( doc.toxml(u'utf-8') )
 
-    def notifyAddResult( self, fileName, filePath, fileAttr ):
-        wx.PostEvent( self, UpdateUiEvent( '_lstctlResults', '', ( fileName, filePath, fileAttr ) ) )
-        KumquatRoot.do_events()
-
     def addResult( self, fileName, filePath, fileAttr ):
         lstctl = self._lstctlResults
         index = lstctl.ItemCount
@@ -225,15 +216,6 @@ class MainDlg(wx.Dialog):
         self._lblResults.Label = u'搜索结果(%d):' % count
 
     ResultsLabel = property( fset = setResultsLabel )
-    # 事件响应 -----------------------------------------------------------------
-    def onUpdateUi( self, evt ):
-        ctrlName, prop, value = evt._args
-        control = self.__getattribute__(ctrlName)
-        if control == self._lstctlResults:
-            fileName, filePath, fileAttr = value
-            self.addResult( fileName, filePath, fileAttr )
-        else:
-            control.__setattr__( prop, value )
 
     def onBtnSearch( self, evt ):
         "搜索按钮响应"
@@ -257,6 +239,8 @@ class MainDlg(wx.Dialog):
             wx.MessageBox( u'搜索终止！', u'搜索状态' )
         else:
             pass #wx.MessageBox(u'搜索完毕！', u'搜索状态' )
+
+        print u'搜到', len(searchDlg._conformFilesCached)
 
 
 

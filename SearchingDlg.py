@@ -7,13 +7,16 @@
 #
 # Author:      Mr.Wid
 # Modify:      WT
-# Created:     22-07-2012
+# Created:     2012-07-22
+# LastModify:  2012-07-31
 # Copyright:   (c) Mr.Wid 2012
 # Licence:
 #-------------------------------------------------------------------------------
 try:
     import wx
     import threading
+    import time
+    import math
     import Queue
     import os
     import re
@@ -35,30 +38,31 @@ def cb_searching( *args, **kwargs ):
             searchDlg.isFinish = True
             break
 
-        #searchDlg.setCurrentSearch(filePath)
+        searchDlg._scanFiles += 1
         searchDlg.currentSearch = filePath
-
+        try:
+            fileSize = os.path.getsize(filePath)
+        except:
+            fileSize = KumquatRoot.Limit.FileSize + 1
+            print filePath
         # 进行搜索
         isConform = False
         if params and params['IsSearchWords']:
-            pass #isConform = True
+            if not ( KumquatRoot.Limit.FileSize > 0 and fileSize > KumquatRoot.Limit.FileSize ):
+                searchDlg._conformFiles += 1
+                isConform = True
+            else:
+                pass
         else:
             searchDlg._conformFiles += 1
             isConform = True
 
-        searchDlg._scanFiles += 1
-        searchDlg._surplusFiles = searchDlg._totalFiles - searchDlg._scanFiles
-
-        #if isConform:
-            #searchDlg.setConformFiles(searchDlg._conformFiles)
-
-        #searchDlg.setScanFiles(searchDlg._scanFiles)
-        #searchDlg.setSurplusFiles(searchDlg._surplusFiles)
-
-        #searchDlg.setGaugeValue(searchDlg._scanFiles)
-
-        #if mainDlg and isConform:
-            #mainDlg.notifyAddResult( os.path.basename(filePath), os.path.dirname(filePath), u'None' )
+        if isConform:
+            try:
+                tup = ( os.path.basename(filePath), os.path.dirname(filePath), u'Size:%s' % fileSize )
+            except:
+                tup = ( 'Failed', 'Failed', 'Failed' )
+            searchDlg._conformFilesCached.append(tup)
 
         if searchDlg.isAbort:
             break
@@ -85,9 +89,6 @@ def cb_statistic( *args, **kwargs ):
                     filePath = rootPath + fileName
                 else:
                     filePath = rootPath + os.path.sep + fileName
-                # 文件大小限制
-                if KumquatRoot.Limit.FileSize > 0 and os.path.getsize(filePath) > KumquatRoot.Limit.FileSize:
-                    continue
                 #进行名单过滤
                 pats = []
                 for pat in params['FilterExtList']:
@@ -112,8 +113,6 @@ def cb_statistic( *args, **kwargs ):
                             continue
 
                 searchDlg._totalFiles += 1
-                #searchDlg.setTotalFiles(searchDlg._totalFiles)
-                #searchDlg.setGaugeRange(searchDlg._totalFiles)
 
                 queue.put(filePath)
 
@@ -134,7 +133,7 @@ class SearchingDlg(wx.Dialog):
             self,
             parent,
             title = u'正在搜索...',
-            size = ( 500, 240 ),
+            size = ( 500, 230 ),
             style = wx.CAPTION
         )
         self.initUIs()
@@ -153,22 +152,30 @@ class SearchingDlg(wx.Dialog):
         self._usedTime = 0
         self._surplusTime = 0
 
+        self._conformFilesCached = []
+
         self._statistic = threading.Thread( None, cb_statistic, None, ( self, mainDlg, params ) )
         self._searching = threading.Thread( None, cb_searching, None, ( self, mainDlg, params ) )
         self._statistic.start()
         self._searching.start()
 
-        self._timer = wx.Timer(self)
-        self._timer.Start(10)
+        self._timer = wx.Timer(self) # 定时器
+        self._timer.Start(10) # 每隔10ms更新一次UI
+        self._startTime = time.clock() # 计算耗时用
         self.Bind( wx.EVT_TIMER, self.onTimer )
 
     def initUIs( self ):
         "初始化UI"
+        wx.StaticText(
+            self,
+            label = u'进度显示:',
+            pos = ( 10, 15 )
+        )
         self._gauge = wx.Gauge(
             self,
             range = 100,
-            pos = ( 25, 25 ),
-            size = ( 370, 30 )
+            pos = ( 10, 35 ),
+            size = ( 390, 28 )
         )
         self._gauge.BezelFace = 2    #在多数平台上都无效果
         self._gauge.ShadowWidth = 2  #在多数平台上都无效果
@@ -186,11 +193,14 @@ class SearchingDlg(wx.Dialog):
             pos = ( 410, 40 )
         )
 
+        self._gauge.Position = ( self._gauge.Position[0], self._btnExit.Position[1] )
+        self._gauge.Size = ( self._gauge.Size[0], self._btnExit.Size[1] )
+
         #-------------------------状态标签-------------------------
         self._lblCurrentSearch = wx.StaticText(
             self,
-            label = u'正在搜索:',
-            pos = ( 25, 85 )
+            label = u'当前搜索:',
+            pos = ( 12, 77 )
         )
 
         self._lblTotalFiles = wx.StaticText(
@@ -228,68 +238,77 @@ class SearchingDlg(wx.Dialog):
         groupBox = wx.StaticBox(
             self,
             label = u'任务状态',
-            pos = (15, 105),
-            size = (465, 90)
+            pos = ( 10, 105 ),
+            size = ( 475, 90 )
         )
 
         self.Bind( wx.EVT_BUTTON, self.onBtnControl, self._btnControl )
         self.Bind( wx.EVT_BUTTON, self.onBtnExit, self._btnExit )
+
         self.Bind( MainDlg.UpdateUiEvent.EVT_UPDATEUI, self.onUpdateUi )
 
+    def setGaugeRange( self, range ):
+        self._gauge.Range = range
 
-    def notifyGaugeRange( self, range ):
-        wx.PostEvent( self, MainDlg.UpdateUiEvent( '_gauge', 'Range', range ) )
-        KumquatRoot.do_events()
+    def setGaugeValue( self, value ):
+        self._gauge.Value = value
 
-    def notifyGaugeValue( self, value ):
-        wx.PostEvent( self, MainDlg.UpdateUiEvent( '_gauge', 'Value', value ) )
-        KumquatRoot.do_events()
+    def setCurrentSearchLabel( self, content ):
+        self._lblCurrentSearch.Label = u'正在搜索:' + content
+
     def setCurrentSearch( self, content ):
         with KumquatRoot.GlobalLock:
-            self._currentSearch = unicode( str(content), KumquatRoot.LocalEncoding, u'ignore' )
-            self._lblCurrentSearch.Label = u'正在搜索:' + self._currentSearch
+            try:
+                self._currentSearch = unicode( str(content), KumquatRoot.LocalEncoding, u'ignore' )
+            except UnicodeEncodeError, e:
+                self._currentSearch = content
+            except UnicodeDecodeError, e:
+                self._currentSearch = u''
+
+    def getCurrentSearch( self ):
+        with KumquatRoot.GlobalLock:
+            currentSearch = self._currentSearch
+        return currentSearch
+
+    currentSearch = property( getCurrentSearch, setCurrentSearch )
+
+    def setTotalFilesLabel( self, count ):
+        self._lblTotalFiles.Label = u'文件总计:' + unicode( str(count), KumquatRoot.LocalEncoding, u'ignore' )
+
+    def setScanFilesLabel( self, count ):
+        self._lblScanFiles.Label = u'已扫描数:' + unicode( str(count), KumquatRoot.LocalEncoding, u'ignore' )
+
+    def setSurplusFilesLabel( self, count ):
+        self._lblSurplusFiles.Label = u'剩余文件:' + unicode( str(count), KumquatRoot.LocalEncoding, u'ignore' )
+
+    @staticmethod
+    def formatTime( time ):
+        sec = int(time)
+        ms = int( ( round( time, 3 ) - sec ) * 1000 )
+        hour = sec / 3600
+        sec %= 3600
+        minute = sec / 60
+        sec %= 60
+        result = u''
+        if hour > 0:
+            result += u'%d时' % hour
+        if minute > 0:
+            result += u'%d分' % minute
+        if sec > 0 or not result:
+            result += u'%d秒' % sec
+        return result
 
 
-    def notifyCurrentSearch( self, content = None ):
-        try:
-            content = u'正在搜索:' + unicode( str(content), KumquatRoot.LocalEncoding, u'ignore' )
-        except UnicodeEncodeError, e:
-            content = u'正在搜索:' + content
-        except UnicodeDecodeError, e:
-            content = u'正在搜索:'
-            print 'DecodeError:', (content)
-        wx.PostEvent( self, MainDlg.UpdateUiEvent( '_lblCurrentSearch', 'Label', content ) )
-        KumquatRoot.do_events()
+    def setUsedTimeLabel( self, time ):
+        self._lblUsedTime.Label = u'已用时长:' + SearchingDlg.formatTime(time)
 
-    def notifyTotalFiles( self, number = None ):
-        content = u'文件总计:' + unicode( str(number), KumquatRoot.LocalEncoding, u'ignore' )
-        wx.PostEvent( self, MainDlg.UpdateUiEvent( '_lblTotalFiles', 'Label', content ) )
-        KumquatRoot.do_events()
 
-    def notifyScanFiles( self, number = None ):
-        content = u'已扫描数:' + unicode( str(number), KumquatRoot.LocalEncoding, u'ignore' )
-        wx.PostEvent( self, MainDlg.UpdateUiEvent( '_lblScanFiles', 'Label', content ) )
-        KumquatRoot.do_events()
+    def setSurplusTimeLabel( self, time ):
+        self._lblSurplusTime.Label = u'剩余时长:' + self.formatTime(time)
 
-    def notifySurplusFiles( self, number = None ):
-        content = u'剩余文件:' + unicode( str(number), KumquatRoot.LocalEncoding, u'ignore' )
-        wx.PostEvent( self, MainDlg.UpdateUiEvent( '_lblSurplusFiles', 'Label', content ) )
-        KumquatRoot.do_events()
 
-    def notifyUsedTime( self, number = None ):
-        content = u'已用时长:' + unicode( str(number), KumquatRoot.LocalEncoding, u'ignore' )
-        wx.PostEvent( self, MainDlg.UpdateUiEvent( '_lblUsedTime', 'Label', content ) )
-        KumquatRoot.do_events()
-
-    def notifySurplusTime( self, number = None ):
-        content = u'剩余时长:' + unicode( str(number), KumquatRoot.LocalEncoding, u'ignore' )
-        wx.PostEvent( self, MainDlg.UpdateUiEvent( '_lblSurplusTime', 'Label', content ) )
-        KumquatRoot.do_events()
-
-    def notifyConformFiles( self, number = None ):
-        content = u'符合条件:' + unicode( str(number), KumquatRoot.LocalEncoding, u'ignore' )
-        wx.PostEvent( self, MainDlg.UpdateUiEvent( '_lblConformFiles', 'Label', content ) )
-        KumquatRoot.do_events()
+    def setConformFilesLabel( self, count ):
+        self._lblConformFiles.Label = u'符合条件:' + unicode( str(count), KumquatRoot.LocalEncoding, u'ignore' )
 
     def getIsFinish( self ):
         with KumquatRoot.GlobalLock:
@@ -299,7 +318,13 @@ class SearchingDlg(wx.Dialog):
     def setIsFinish( self, value ):
         with KumquatRoot.GlobalLock:
             self._isFinish = value
+
         wx.PostEvent( self, MainDlg.UpdateUiEvent( '_btnExit', 'Label', u'退出' if value else u'终止' ) )
+        wx.PostEvent( self, MainDlg.UpdateUiEvent( '_btnControl', 'Enabled', not value ) )
+
+        if self._isFinish:
+            self._timer.Stop()
+            wx.PostEvent( self, wx.TimerEvent( self._timer.Id, self._timer.Interval ) )
 
     isFinish = property( getIsFinish, setIsFinish, doc = "是否完成搜索" )
 
@@ -313,19 +338,38 @@ class SearchingDlg(wx.Dialog):
             self._isAbort = value
 
     isAbort = property( getIsAbort, setIsAbort, doc = "是否终止" )
-
-    def onTimer( self, evt ):
-        if evt.Id == self._timer.Id:
-            self._usedTime += self._timer.Interval
-            #print self._usedTime
-            self._gauge.Range = self._totalFiles
-            self._gauge.Value = self._scanFiles
-
     # 更新UI控件的自定义事件
     def onUpdateUi( self, evt ):
         ctrlName, propName, value = evt._args
         control = self.__getattribute__(ctrlName)
         control.__setattr__( propName, value )
+
+    def onTimer( self, evt ):
+        if evt.Id == self._timer.Id:
+            thisTime = time.clock()
+            oneUsedTime = thisTime - self._startTime
+            self._usedTime += oneUsedTime
+            self._startTime = thisTime
+
+            speed = self._scanFiles / self._usedTime # 速度
+
+            self._surplusFiles = self._totalFiles - self._scanFiles # 剩余未搜索
+
+            try:
+                surplusTime = self._surplusFiles / speed
+            except:
+                surplusTime = -1
+
+            self.setSurplusTimeLabel(surplusTime)
+
+            self.setGaugeRange(self._totalFiles)
+            self.setGaugeValue(self._scanFiles)
+            self.setCurrentSearchLabel(self.currentSearch)
+            self.setTotalFilesLabel(self._totalFiles)
+            self.setScanFilesLabel(self._scanFiles)
+            self.setSurplusFilesLabel(self._surplusFiles)
+            self.setUsedTimeLabel(self._usedTime)
+            self.setConformFilesLabel(self._conformFiles)
 
     def onBtnControl( self, evt ):
         print u'暂停'
@@ -340,7 +384,8 @@ class SearchingDlg(wx.Dialog):
 
 def test():
     app = wx.PySimpleApp()
-    dlg = SearchingDlg( None, { 'RootPath':'F:\\', 'FilterExtList':[], 'IsUseMatchName':False, 'IsSearchWords':False }, None )
+
+    dlg = SearchingDlg( None, { 'RootPath':'F:\\' if os.path.sep == '\\' else '/', 'FilterExtList':[], 'IsUseMatchName':False, 'IsSearchWords':False }, None )
     if dlg.ShowModal() == wx.ID_ABORT:
         pass
 
