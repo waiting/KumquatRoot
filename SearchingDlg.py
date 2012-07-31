@@ -25,6 +25,13 @@ try:
 except ImportError, e:
     pass
 
+def bytes_unit( size ):
+	if size < 1024:
+		return unicode(size) + u'B'
+	elif size < 1024 * 1024:
+		return unicode( math.ceil( float(size) * 100 / 1024 ) / 100 ) + u'KB'
+	else:
+		return unicode( math.ceil( float(size) * 100 / ( 1024 * 1024 ) ) / 100 ) + u'MB'
 
 # 搜索线程
 def cb_searching( *args, **kwargs ):
@@ -59,10 +66,10 @@ def cb_searching( *args, **kwargs ):
 
         if isConform:
             try:
-                tup = ( os.path.basename(filePath), os.path.dirname(filePath), u'Size:%s' % fileSize )
+                tup = ( os.path.basename(filePath), os.path.dirname(filePath), u'Size:%s' % bytes_unit(fileSize) )
             except:
                 tup = ( 'Failed', 'Failed', 'Failed' )
-            searchDlg._conformFilesCached.append(tup)
+            if mainDlg: mainDlg._resultItems.append(tup)
 
         if searchDlg.isAbort:
             break
@@ -152,15 +159,13 @@ class SearchingDlg(wx.Dialog):
         self._usedTime = 0
         self._surplusTime = 0
 
-        self._conformFilesCached = []
-
         self._statistic = threading.Thread( None, cb_statistic, None, ( self, mainDlg, params ) )
         self._searching = threading.Thread( None, cb_searching, None, ( self, mainDlg, params ) )
         self._statistic.start()
         self._searching.start()
 
         self._timer = wx.Timer(self) # 定时器
-        self._timer.Start(10) # 每隔10ms更新一次UI
+        self._timer.Start(KumquatRoot.Limit.QueryInterval) # 每隔100ms更新一次UI
         self._startTime = time.clock() # 计算耗时用
         self.Bind( wx.EVT_TIMER, self.onTimer )
 

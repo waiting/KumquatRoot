@@ -9,6 +9,7 @@ try:
     import os
     import wx
     import KumquatRoot
+    import math
     import xml.dom.minidom
     import NamesListDlg
     import SearchingDlg
@@ -33,6 +34,10 @@ class MainDlg(wx.Dialog):
             size = ( 640, 480 )
         )
         self.initUIs()
+        self._resultItems =[]
+        self._resultItemsCount = 0
+        self._page = 1
+        self._pageCount = 0
 
     def initUIs(self):
         "初始化UI"
@@ -102,6 +107,7 @@ class MainDlg(wx.Dialog):
             pos = ( rect[0], rect2[1] + rect2[3] + 10 )
         )
         rect = lblTest.Rect
+
         self._lstctlResults = wx.ListCtrl(
             self,
             pos = ( rect[0], rect[1] + rect[3] + 5 ),
@@ -152,10 +158,45 @@ class MainDlg(wx.Dialog):
             size = ( box.Rect[0] - 10 - (rect2[0]+rect2[2] + 10), 37 )
         )
 
+        rect = box.Rect
+        self._btnGoPage = wx.Button(
+            self,
+            label = u'Go',
+            pos = ( rect[0] - 30 - 4, self._lblResults.Rect[1] - 2 ),
+            size = ( 30, 20 )
+        )
+        rect = self._btnGoPage.Rect
+
+        self._txtCurPage = wx.TextCtrl(
+            self,
+            pos = ( rect[0] - 46 - 4, rect[1] ),
+            size = ( 46, 20 )
+        )
+        rect = self._txtCurPage.Rect
+
+        self._btnNextPage = wx.Button(
+            self,
+            label = u'->',
+            pos = ( rect[0] - 30 - 4, rect[1] ),
+            size = ( 30, 20 )
+        )
+        rect = self._btnNextPage.Rect
+
+        self._btnPrevPage = wx.Button(
+            self,
+            label = u'<-',
+            pos = ( rect[0] -30 - 4, rect[1] ),
+            size = ( 30, 20 )
+        )
+
         self.Bind( wx.EVT_BUTTON, self.onBtnBrowse, self._btnBrowse )
         self.Bind( wx.EVT_BUTTON, self.onBtnBlackListSettings, self._btnBlackListSettings )
         self.Bind( wx.EVT_BUTTON, self.onBtnWhiteListSettings, self._btnWhiteListSettings )
         self.Bind( wx.EVT_BUTTON, self.onBtnSearch, self._btnSearch )
+
+        self.Bind( wx.EVT_BUTTON, self.onBtnPrevPage, self._btnPrevPage )
+        self.Bind( wx.EVT_BUTTON, self.onBtnNextPage, self._btnNextPage )
+        self.Bind( wx.EVT_BUTTON, self.onBtnGoPage, self._btnGoPage )
 
     def loadNamesList( self, isBlack ):
         '加载名单设置'
@@ -174,7 +215,6 @@ class MainDlg(wx.Dialog):
             pats = []
             for pat in patterns:
                 pats.append( pat.firstChild.nodeValue if pat.firstChild else u'' )
-            #return [pattern.firstChild.nodeValue for pattern in patterns]
             return pats
         else:
             return []
@@ -206,16 +246,35 @@ class MainDlg(wx.Dialog):
         lstctl.InsertStringItem( index, fileName )
         lstctl.SetStringItem( index, 1, filePath )
         lstctl.SetStringItem( index, 2, fileAttr )
-        self.ResultsLabel = lstctl.ItemCount
 
     def clearResults( self ):
         self._lstctlResults.DeleteAllItems()
-        self.ResultsLabel = 0
 
-    def setResultsLabel( self, count = 0 ):
-        self._lblResults.Label = u'搜索结果(%d):' % count
+    def setResultsLabel( self, count, pageCount ):
+        self._lblResults.Label = u'搜索结果(%d, 共%d页):' % ( count, pageCount )
 
-    ResultsLabel = property( fset = setResultsLabel )
+    def updateResultsPage( self, page ):
+        if self._pageCount < 1: return
+        if page < 1:
+            page = 1
+        elif page > self._pageCount:
+            page = self._pageCount
+
+        self._page = page
+        self._txtCurPage.Value = unicode(page)
+
+        if self._page == self._pageCount:
+            start = ( self._page - 1 ) * KumquatRoot.Limit.SplitPage
+            end = self._resultItemsCount
+        else:
+            start = ( self._page - 1 ) * KumquatRoot.Limit.SplitPage
+            end = start + KumquatRoot.Limit.SplitPage
+
+        self.clearResults()
+
+        for i in xrange( start, end ):
+            fileName, filePath, fileAttr = self._resultItems[i]
+            self.addResult( fileName, filePath, fileAttr )
 
     def onBtnSearch( self, evt ):
         "搜索按钮响应"
@@ -233,6 +292,9 @@ class MainDlg(wx.Dialog):
 
         #清空结果列表
         self.clearResults()
+        self._resultItems =[]
+        self._resultItemsCount = 0
+
         #打开SearchingDlg，进行搜索
         searchDlg = SearchingDlg.SearchingDlg( self, params, self )
         if searchDlg.ShowModal() == wx.ID_ABORT:
@@ -240,9 +302,25 @@ class MainDlg(wx.Dialog):
         else:
             pass #wx.MessageBox(u'搜索完毕！', u'搜索状态' )
 
-        print u'搜到', len(searchDlg._conformFilesCached)
+        self._resultItemsCount = len(self._resultItems) # 取得符合条件的结果数
+        self._pageCount = int( math.ceil( float(self._resultItemsCount) / KumquatRoot.Limit.SplitPage ) ) # 页数
 
+        self.setResultsLabel( self._resultItemsCount, self._pageCount )
 
+        self._page = 1
+        self._txtCurPage.Value = unicode(self._page)
+        self.updateResultsPage(self._page) # 更新结果页
+
+    def onBtnPrevPage( self, evt ):
+        self.updateResultsPage( self._page - 1 )
+    def onBtnNextPage( self, evt ):
+        self.updateResultsPage( self._page + 1 )
+    def onBtnGoPage( self, evt ):
+        try:
+            page = int(self._txtCurPage.Value)
+        except:
+            page = 1
+        self.updateResultsPage(page)
 
     def onBtnBrowse( self, evt ):
         dirDlg = wx.DirDialog( self, message = u'请选择一个待搜索目录' )
