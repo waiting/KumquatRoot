@@ -179,7 +179,7 @@ class SearchingDlg(wx.Dialog):
 
         self._timer = wx.Timer(self) # 定时器
         self._timer.Start(KumquatRoot.Limit.QueryInterval) # 每隔100ms更新一次UI
-        self._startTime = time.clock() # 计算耗时用
+        self._startTime = time.time() # 计算耗时用
         self.Bind( wx.EVT_TIMER, self.onTimer )
 
     def initUIs( self ):
@@ -364,7 +364,7 @@ class SearchingDlg(wx.Dialog):
 
     def onTimer( self, evt ):
         if evt.Id == self._timer.Id:
-            thisTime = time.clock()
+            thisTime = time.time()
             oneUsedTime = thisTime - self._startTime
             self._usedTime += oneUsedTime
             self._startTime = thisTime
@@ -393,7 +393,7 @@ class SearchingDlg(wx.Dialog):
         if self._pauseFlag:# 当处于暂停中...
             self._pause.set() # 唤醒线程
             self._timer.Start(KumquatRoot.Limit.QueryInterval) # 开启定时器
-            self._startTime = time.clock() # 计算耗时用
+            self._startTime = time.time() # 计算耗时用
             self._pauseFlag = False
             self._btnControl.Label = u'暂停'
         else:

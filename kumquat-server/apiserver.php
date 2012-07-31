@@ -105,7 +105,7 @@ else
 if ( $client_key != $client_key_auth )
 {
 	status_node( KR_AUTH_FAILED, '客户端验证失败' );
-	extra_node( urlencode($client_key_auth), '验证串' );
+	//extra_node( urlencode($client_key_auth), '验证串' );
 }
 else
 	switch ( $action )
