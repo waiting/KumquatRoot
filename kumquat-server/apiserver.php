@@ -12,17 +12,25 @@
 		<refer url="$refer" desc="$desc" /> ?
 	</apiserver>
  */
+# load config
+require_once 'config.inc.php';
 
+$pdo = new PDO( $db_dsn, $db_user, $db_pwd, array( PDO::ATTR_PERSISTENT => true ) );
+
+
+# actions defined
 $actions = array(
 	'feedback_add' => '添加反馈', // 接受4个POST参数: username(用户名), email(邮箱), content(反馈内容), info(信息"os:nt;version:1.0;...")
 	'none' => '无动作',
 );
 
 # Error code
+define( 'KR_CUSTOM', -1 ); // 自定义错误
 define( 'KR_OK', 0 ); // 无错
 define( 'KR_AUTH_FAILED', 1 ); // 验证失败
 define( 'KR_NOT_IMPL', 2 ); // 未实现
 define( 'KR_NO_ACTION', 3 ); // 无动作
+define( 'KR_DB_ERROR', 4 ); // 数据库出错
 
 
 function action_node( $name, $desc )
@@ -91,7 +99,8 @@ echo '<?xml version="1.0" encoding="utf-8" ?>';
 echo '<apiserver>';
 
 # client_key 是一个字符串，用于简单验证客户端身份
-$client_key_auth = 'KumquatRoot.1:2012-07-31';
+$client_key_auth = md5( 'KumquatRoot.1:' . date('Y-m-d') );
+
 
 $client_key = isset($_GET['client_key']) ? gpc($_GET['client_key']) : '';
 $action = isset($_GET['action']) ? gpc($_GET['action']) : 'none';
@@ -105,9 +114,10 @@ else
 if ( $client_key != $client_key_auth )
 {
 	status_node( KR_AUTH_FAILED, '客户端验证失败' );
-	//extra_node( urlencode($client_key_auth), '验证串' );
+	extra_node( urlencode($client_key_auth), '验证串' );
 }
 else
+{
 	switch ( $action )
 	{
 	case 'feedback_add':
@@ -118,13 +128,44 @@ else
 		$time = time();
 		$ip = ip();
 
-		status_node( KR_NOT_IMPL, '暂未实现' );
-		
+		if ( $content == '' )
+		{
+			status_node( KR_CUSTOM, '反馈内容不能为空' );
+			break;
+		}
+
+		$stmt = $pdo->prepare(
+			'insert into feedbacks( username, email, info, content, ip, time )
+			values ( :username, :email, :info, :content, :ip, :time );'
+		);
+		if ( $stmt->execute( array(
+			':username' => $username,
+			':email' => $email,
+			':info' => $info,
+			':content' => $content,
+			':ip' => $ip,
+			':time' => $time
+		) ) )
+		{
+			status_node( KR_OK, '提交成功' );
+		}
+		else
+		{
+			$errInfo = $stmt->errorInfo();
+			status_node( KR_DB_ERROR, '数据库出错' );
+			extra_node(
+				'<code>'.$errInfo[0].'</code>' .
+				'<errno>'.$errInfo[1].'</errno>'.
+				'<errstr>'.htmlspecialchars($errInfo[2]).'</errstr>',
+				'ErrorInfo'
+			);
+		}
+
 		break;
 	default:
 		status_node( KR_NO_ACTION, '没有执行任何动作' );
 		break;
 	}
-
+}
 
 echo '</apiserver>';
