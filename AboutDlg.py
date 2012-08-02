@@ -13,7 +13,6 @@
 #-------------------------------------------------------------------------------
 
 import wx
-import wx.html
 
 class AboutDlg(wx.Dialog):
     def __init__(self):
@@ -99,6 +98,13 @@ class AboutDlg(wx.Dialog):
         self._noteBook.AddPage(_txtLicense, u"协议")
         self._noteBook.AddPage(_txtOthers, u"其他")
 
+        #------确定按钮------
+        self._btnOK = wx.Button(
+            self,
+            label = u"确定",
+            pos = (170, 435),
+            size = (60, 30)
+        )
 def test():
     app = wx.PySimpleApp()
     aboutDlg = AboutDlg()
