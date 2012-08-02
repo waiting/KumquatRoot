@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<?xml-stylesheet type="text/xsl" href="apiserver.xsl" ?>
+<apiserver url="http://www.x86pro.com/kumquat/apiserver.php">
+	<api name="feedback_add" method="POST" desc="添加反馈">
+		<params>
+			<param name="client_key" type="string" method="GET" desc="客户端验证串"></param>
+			<param name="action" type="string" method="GET" defvalue="feedback_add" desc="API名称">
+				<value value="feedback_add" desc="此API必须指定此值" />
+			</param>
+			<param name="username" type="string" defvalue="" desc="反馈的用户名"></param>
+			<param name="email" type="string" defvalue="" desc="反馈的用户邮箱"></param>
+			<param name="info" type="string" defvalue="" desc="反馈的用户平台信息"></param>
+			<param name="content" type="string" defvalue="" desc="反馈的内容"></param>
+			
+		</params>
+		<notice><![CDATA[
+此API添加一个反馈信息到服务器，客户端需要计算好验证串，否则调用失败。
+info参数的格式为xx:vv1;yy:vv2;zz:vv3;...
+]]></notice>
+		<return type="XML"><![CDATA[
+返回一个XML，说明调用结果。格式如下
+<?xml version="1.0" encoding="utf-8" ?>
+<apiserver>
+    <action name="API名称" desc="描述" />
+    <status error="错误号" desc="错误信息" />
+    <extra desc="额外信息描述">额外的信息</extra> ?
+</apiserver>
+问号标识的节点表示可有可无。
+调用者应该检测status的error属性，以判断调用是否成功，非0为出错，0为成功。]]>
+		</return>
+	</api>
+</apiserver>

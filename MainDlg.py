@@ -41,6 +41,9 @@ class MainDlg(wx.Dialog):
 
     def initUIs(self):
         "初始化UI"
+        icons = wx.IconBundle()
+        icons.AddIconFromFile( u'KumquatRoot.ico', wx.BITMAP_TYPE_ICO )
+        self.SetIcons(icons)
         # first line -----------------------------------------------------------
         lblTest = wx.StaticText(
             self,

@@ -1,10 +1,10 @@
 <?php
-# ÅäÖÃÎÄ¼þ
+# é…ç½®æ–‡ä»¶
 
-# Ò³Ãæ±àÂë
+# é¡µé¢ç¼–ç 
 $page_charset = 'utf-8';
 
-# Êý¾Ý¿â²ÎÊý
+# æ•°æ®åº“å‚æ•°
 $db_charset = 'utf8';
 $db_name = 'kumquat.kdb';
 $db_dsn = "sqlite:$db_name";

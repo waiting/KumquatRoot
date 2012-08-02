@@ -9,7 +9,6 @@
 		<action name="$name" desc="$desc" />
 		<status error="$error" desc="$desc" />
 		<extra desc="$desc">$data</extra> ?
-		<refer url="$refer" desc="$desc" /> ?
 	</apiserver>
  */
 # load config
@@ -114,7 +113,7 @@ else
 if ( $client_key != $client_key_auth )
 {
 	status_node( KR_AUTH_FAILED, '客户端验证失败' );
-	extra_node( urlencode($client_key_auth), '验证串' );
+	//extra_node( urlencode($client_key_auth), '验证串' );
 }
 else
 {
@@ -123,8 +122,8 @@ else
 	case 'feedback_add':
 		$username = isset($_POST['username']) ? gpc($_POST['username']) : '';
 		$email = isset($_POST['email']) ? gpc($_POST['email']) : '';
-		$content = isset($_POST['content']) ? gpc($_POST['content']) : '';
 		$info = isset($_POST['info']) ? gpc($_POST['info']) : '';
+		$content = isset($_POST['content']) ? gpc($_POST['content']) : '';
 		$time = time();
 		$ip = ip();
 
@@ -157,7 +156,7 @@ else
 				'<code>'.$errInfo[0].'</code>' .
 				'<errno>'.$errInfo[1].'</errno>'.
 				'<errstr>'.htmlspecialchars($errInfo[2]).'</errstr>',
-				'ErrorInfo'
+				'详细的错误信息'
 			);
 		}
 

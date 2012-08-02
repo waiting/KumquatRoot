@@ -1,1 +1,1 @@
-python -B KumquatRoot.py
+pythonw KumquatRoot.py

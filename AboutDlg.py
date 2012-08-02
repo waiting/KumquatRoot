@@ -13,7 +13,6 @@
 #-------------------------------------------------------------------------------
 
 import wx
-import wx.html
 
 class AboutDlg(wx.Dialog):
     def __init__(self):
