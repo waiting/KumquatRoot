@@ -1,2 +1,2 @@
 #!/bin/sh
-python -B KumquatRoot.py
+python KumquatRoot.py
