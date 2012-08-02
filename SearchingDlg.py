@@ -50,6 +50,31 @@ def cb_searching( *args, **kwargs ):
         searchDlg._scanFiles += 1
         searchDlg.currentSearch = filePath
 
+        fileName = os.path.basename(filePath)
+
+        isDoSearch = True #是否要搜索这个文件
+        #进行名单过滤
+        pats = []
+        for pat in params['FilterExtList']:
+            if not pat:
+                pats.append(r'^[^\.]+$')
+            else:
+                pats.append( r'\.' + pat + '$' )
+        patStr = '|'.join(pats)
+        if patStr:
+            if params['UseListMode'] == 0: # 黑名单
+                if re.search( patStr, fileName, re.IGNORECASE ):
+                    isDoSearch = False
+            elif params['UseListMode'] == 1: # 白名单
+                if not re.search( patStr, fileName, re.IGNORECASE ):
+                    isDoSearch = False
+
+        #进行文件名过滤
+        if params['IsUseMatchName'] and params['MatchName']:
+            if not re.search( params['MatchName'], fileName, re.IGNORECASE ):
+                isDoSearch = False
+
+        # 计算大小，判断可访问性
         try:
             fileSize = os.path.getsize(filePath)
         except:
@@ -57,23 +82,24 @@ def cb_searching( *args, **kwargs ):
 
         # 进行搜索
         isConform = False
-        if params and params['IsSearchWords']:
-            if fileSize != None:
-                if not ( KumquatRoot.Limit.FileSize > 0 and fileSize > KumquatRoot.Limit.FileSize ):
-                    searchDlg._conformFiles += 1
-                    isConform = True
-                else:
-                    pass
-        else:
-            searchDlg._conformFiles += 1
-            isConform = True
+        if isDoSearch:
+            if params['IsSearchWords']:
+                if fileSize != None:
+                    if not ( KumquatRoot.Limit.FileSize > 0 and fileSize > KumquatRoot.Limit.FileSize ):
+                        searchDlg._conformFiles += 1
+                        isConform = True
+                    else: # 超过大小就不搜索词组
+                        pass
+            else: # 不打开搜词开关
+                searchDlg._conformFiles += 1
+                isConform = True
 
-        if isConform:
-            try:
-                tup = ( os.path.basename(filePath), os.path.dirname(filePath), u'Size:%s' % ( bytes_unit(fileSize) if fileSize != None else u'Error' ) )
-            except:
-                tup = ( 'Failed', 'Failed', 'Failed' )
-            if mainDlg: mainDlg._resultItems.append(tup)
+            if isConform:
+                try:
+                    tup = ( os.path.basename(filePath), os.path.dirname(filePath), u'Size:%s' % ( bytes_unit(fileSize) if fileSize != None else u'Error' ) )
+                except:
+                    tup = ( 'Failed', 'Failed', 'Failed' )
+                if mainDlg: mainDlg._resultItems.append(tup)
 
         if searchDlg.isAbort:
             break
@@ -84,56 +110,33 @@ def cb_statistic( *args, **kwargs ):
     "cb_statistic( SearchingDlg searchDlg, MainDlg mainDlg, params )"
     searchDlg, mainDlg, params = args
     queue = searchDlg._queue
-    if params:
-        for rootPath, dirNames, fileNames in os.walk(params['RootPath']):
+    for rootPath, dirNames, fileNames in os.walk(params['RootPath']):
+        searchDlg._pause.wait() # 暂停事件锁
+        if KumquatRoot.Limit.TotalFiles > 0 and searchDlg._totalFiles == KumquatRoot.Limit.TotalFiles:
+            break
+
+        if searchDlg.isAbort:
+            break
+
+        for fileName in fileNames:
             searchDlg._pause.wait() # 暂停事件锁
+            # 判断根目录的情况
+            if re.match( '^\\w:\\\\$', rootPath ):
+                filePath = rootPath + fileName
+            elif re.match( '^/$', rootPath ):
+                filePath = rootPath + fileName
+            else:
+                filePath = rootPath + os.path.sep + fileName
+
+            searchDlg._totalFiles += 1
+
+            queue.put(filePath)
+
             if KumquatRoot.Limit.TotalFiles > 0 and searchDlg._totalFiles == KumquatRoot.Limit.TotalFiles:
                 break
 
             if searchDlg.isAbort:
                 break
-
-            for fileName in fileNames:
-                searchDlg._pause.wait() # 暂停事件锁
-                # 判断根目录的情况
-                if re.match( '^\\w:\\\\$', rootPath ):
-                    filePath = rootPath + fileName
-                elif re.match( '^/$', rootPath ):
-                    filePath = rootPath + fileName
-                else:
-                    filePath = rootPath + os.path.sep + fileName
-                #进行名单过滤
-                pats = []
-                for pat in params['FilterExtList']:
-                    if not pat:
-                        pats.append(r'^[^\.]+$')
-                    else:
-                        pats.append( r'\.' + pat + '$' )
-                patStr = '|'.join(pats)
-                if patStr:
-                    if params['UseListMode'] == 0: # 黑名单
-                        if re.search( patStr, fileName, re.IGNORECASE ):
-                            continue
-                    elif params['UseListMode'] == 1: # 白名单
-                        if not re.search( patStr, fileName, re.IGNORECASE ):
-                            continue
-
-                #进行文件名过滤
-                if params['IsUseMatchName']:
-                    if params['MatchName']:
-                        #print `params['MatchName']`
-                        if not re.search( params['MatchName'], fileName, re.IGNORECASE ):
-                            continue
-
-                searchDlg._totalFiles += 1
-
-                queue.put(filePath)
-
-                if KumquatRoot.Limit.TotalFiles > 0 and searchDlg._totalFiles == KumquatRoot.Limit.TotalFiles:
-                    break
-
-                if searchDlg.isAbort:
-                    break
 
     #放入一个None，让搜索线程退出
     queue.put(None)
@@ -184,6 +187,7 @@ class SearchingDlg(wx.Dialog):
 
     def initUIs( self ):
         "初始化UI"
+
         wx.StaticText(
             self,
             label = u'进度显示:',
