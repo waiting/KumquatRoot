@@ -291,7 +291,7 @@ class MainDlg(wx.Dialog):
         params['SearchWords'] = self._txtSearchWords.Value
         params['FilterExtList'] = self.loadNamesList( params['UseListMode'] == 0 ) # 加载过滤名单
         params['RootPath'] = self._txtPathRoot.Value # 搜索路径
-        params['RootPath'] = params['RootPath'] if params['RootPath'] else os.path.abspath(os.path.curdir)
+        params['RootPath'] = params['RootPath'] if params['RootPath'] else unicode( os.path.abspath(os.path.curdir), KumquatRoot.LocalEncoding, u'ignore' )
 
         #清空结果列表
         self.clearResults()
@@ -303,7 +303,7 @@ class MainDlg(wx.Dialog):
         if searchDlg.ShowModal() == wx.ID_ABORT:
             wx.MessageBox( u'搜索终止！', u'搜索状态' )
         else:
-            pass #wx.MessageBox(u'搜索完毕！', u'搜索状态' )
+            pass
 
         self._resultItemsCount = len(self._resultItems) # 取得符合条件的结果数
         self._pageCount = int( math.ceil( float(self._resultItemsCount) / KumquatRoot.Limit.SplitPage ) ) # 页数
