@@ -1,9 +1,6 @@
 <?php
-require_once 'config.inc.php';
-
 header('Content-Type: text/html; charset=utf-8');
-
-$pdo = new PDO( $db_dsn, $db_user, $db_pwd, array( PDO::ATTR_PERSISTENT => true ) );
+require_once 'init-settings.php';
 
 $ret = $pdo->exec(
 	"CREATE TABLE IF NOT EXISTS feedbacks(
