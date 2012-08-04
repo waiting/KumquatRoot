@@ -2,7 +2,7 @@
 #coding:utf-8
 
 #-------------------------------------------------------------------------------
-# Name:        About.py
+# Name:        AboutDlg.py
 # Purpose:
 #
 # Author:      Mr.Wid
@@ -15,10 +15,10 @@
 import wx
 
 class AboutDlg(wx.Dialog):
-    def __init__(self):
+    def __init__(self, parent):
         wx.Dialog.__init__(
             self,
-            parent = None,
+            parent = parent,
             title = u'关于',
             size = (400, 500)
     )
@@ -107,7 +107,7 @@ class AboutDlg(wx.Dialog):
         )
 def test():
     app = wx.PySimpleApp()
-    aboutDlg = AboutDlg()
+    aboutDlg = AboutDlg(None)
     aboutDlg.ShowModal()
 
 if __name__ == '__main__':
