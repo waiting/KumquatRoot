@@ -96,6 +96,11 @@ else
 			status_node( KR_CUSTOM, '反馈内容不能为空' );
 			break;
 		}
+		if ( mb_strlen($content) > 1024 )
+		{
+			status_node( KR_CUSTOM, '反馈内容不能超过1024个字符' );
+			break;
+		}
 
 		$stmt = $pdo->prepare(
 			'insert into feedbacks( username, email, info, content, ip, time )

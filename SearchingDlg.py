@@ -395,14 +395,14 @@ class SearchingDlg(wx.Dialog):
             self._usedTime += oneUsedTime
             self._startTime = thisTime
 
-            speed = self._scanFiles / self._usedTime # 速度
-
             self._surplusFiles = self._totalFiles - self._scanFiles # 剩余未搜索
 
             try:
-                surplusTime = self._surplusFiles / speed
+                speed = self._scanFiles / self._usedTime # 速度
             except:
-                surplusTime = -1
+                speed = 1
+
+            surplusTime = self._surplusFiles / speed
 
             self.setSurplusTimeLabel(surplusTime)
 

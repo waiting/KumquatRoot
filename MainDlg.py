@@ -13,6 +13,8 @@ try:
     import xml.dom.minidom
     import NamesListDlg
     import SearchingDlg
+    import Feedback
+    import AboutDlg
 except ImportError, e:
     print e
 
@@ -201,6 +203,19 @@ class MainDlg(wx.Dialog):
         self.Bind( wx.EVT_BUTTON, self.onBtnNextPage, self._btnNextPage )
         self.Bind( wx.EVT_BUTTON, self.onBtnGoPage, self._btnGoPage )
 
+        self.Bind( wx.EVT_CONTEXT_MENU, self.onContextMenu )
+        #self.Bind( wx.EVT_COMMAND_RANGE() )
+        #wx.EVT_COMMAND_RANGE( self, 1001, 1003, wx.wxEVT_CO )
+        self._popMenu = wx.Menu()
+        self._popMenu.Append( self.MENU_FEEDBACK, u'反馈...' )
+        self._popMenu.Append( self.MENU_ABOUT, u'关于' )
+        self._popMenu.Append( self.MENU_HELP, u'帮助' )
+        self.Bind( wx.EVT_MENU_RANGE, self.onPopupMenu, id = self.MENU_FEEDBACK, id2 = self.MENU_HELP )
+
+    MENU_FEEDBACK = 1001
+    MENU_ABOUT = 1002
+    MENU_HELP = 1003
+
     def loadNamesList( self, isBlack ):
         '加载名单设置'
         try:
@@ -344,6 +359,16 @@ class MainDlg(wx.Dialog):
         if dlg.ShowModal() == wx.ID_OK:
             self.writeNamesList( False, dlg._txtNamesList.Value.splitlines() )
 
+    def onContextMenu( self, evt ):
+        self.PopupMenu(self._popMenu)
+
+    def onPopupMenu( self, evt ):
+        if evt.Id == self.MENU_FEEDBACK:
+            dlg = Feedback.Feedback()
+        elif evt.Id == self.MENU_ABOUT:
+            dlg = AboutDlg.AboutDlg()
+        elif evt.Id == self.MENU_HELP:
+            pass
 
 def test():
     app = wx.PySimpleApp()

@@ -43,6 +43,5 @@ function ip()
 }
 
 require_once 'config.inc.php';
-
+mb_internal_encoding($page_charset);
 $pdo = new PDO( $db_dsn, $db_user, $db_pwd, array( PDO::ATTR_PERSISTENT => true ) );
-
