@@ -13,7 +13,7 @@ try:
     import xml.dom.minidom
     import NamesListDlg
     import SearchingDlg
-    import Feedback
+    import FeedbackDlg
     import AboutDlg
 except ImportError, e:
     print e
@@ -364,9 +364,11 @@ class MainDlg(wx.Dialog):
 
     def onPopupMenu( self, evt ):
         if evt.Id == self.MENU_FEEDBACK:
-            dlg = Feedback.Feedback()
+            dlg = FeedbackDlg.FeedbackDlg(self)
+            dlg.ShowModal()
         elif evt.Id == self.MENU_ABOUT:
-            dlg = AboutDlg.AboutDlg()
+            dlg = AboutDlg.AboutDlg(self)
+            dlg.ShowModal()
         elif evt.Id == self.MENU_HELP:
             pass
 
