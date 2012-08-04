@@ -1,14 +1,14 @@
 #coding:utf-8
 
 #-------------------------------------------------------------------------------
-# Name:        Feedback.py
+# Name:        FeedbackDlg.py
 # Purpose:
 #
 # Author:      Mr.Wid
 #
 # Created:     29-07-2012
 # Copyright:   (c) Mr.Wid 2012
-# Licence:     <your licence>
+# Licence:
 #-------------------------------------------------------------------------------
 
 import wx
