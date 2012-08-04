@@ -92,9 +92,9 @@ class FeedbackDlg(wx.Dialog):
             pos=(80,68),
             size = (180, 20),
         )
-        groupBox = wx.StaticBox(
+        self.groupBox = wx.StaticBox(
             self,
-            label = u'内容(必填)',
+            label = u'内容(必填)[0/1024]',
             pos = (20, self.y),
             size = (255, 200)
         )
@@ -102,8 +102,9 @@ class FeedbackDlg(wx.Dialog):
             self,
             pos=(30,self.y + 20),
             size = (235, 170),
-            style=wx.TE_MULTILINE
+            style = wx.TE_MULTILINE,
         )
+        self._txtUserContents.SetMaxLength(1024)
 
         #按钮控件----------------------
         self._btnSub = wx.Button(
@@ -122,8 +123,13 @@ class FeedbackDlg(wx.Dialog):
 
         #事件绑定----------------------
         self._btnSub.Bind(wx.EVT_BUTTON, self.OnSub)
+        self._txtUserContents.Bind(wx.EVT_TEXT, self.ResetBoxLabel)
 
     #事件方法----------------------
+    def ResetBoxLabel(self, event):
+        _length = len(self._txtUserContents.GetValue())
+        self.groupBox.SetLabel(u'内容(必填)[%s/1024]'%str(_length))
+
     def OnSub(self, event):
         if not self._txtUserContents.GetValue():
             wx.MessageBox(u'反馈内容不能为空!')
