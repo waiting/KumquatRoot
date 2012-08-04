@@ -1,0 +1,143 @@
+#coding:utf-8
+
+#-------------------------------------------------------------------------------
+# Name:        Feedback.py
+# Purpose:
+#
+# Author:      Mr.Wid
+#
+# Created:     29-07-2012
+# Copyright:   (c) Mr.Wid 2012
+# Licence:     <your licence>
+#-------------------------------------------------------------------------------
+
+import wx
+import time
+import httplib
+import urllib
+import md5
+import platform
+import xml.dom.minidom
+
+def en(x):
+    return x.encode("u8")
+
+def submit_feedback( username, email, info, content ):
+    try:
+        clientKey = md5.md5('KumquatRoot.1:' + time.strftime("%Y-%m-%d")).hexdigest()
+        params_get = urllib.urlencode({ 'client_key':clientKey, 'action':'feedback_add' })
+        headers = {
+            "Content-type": "application/x-www-form-urlencoded",
+            "Accept": "text/xml"
+        }
+        conn = httplib.HTTPConnection("www.x86pro.com")
+
+        params_post = urllib.urlencode({
+            'username':en(username),
+            'email':en(email),
+            'info':en(info),
+            'content':en(content)
+        })
+
+        conn.request("POST", "/kumquat/apiserver.php?" + params_get, params_post, headers)
+        response = conn.getresponse()
+        data = response.read()
+        conn.close()
+
+        xmldom = xml.dom.minidom.parseString(data)
+
+        statusNode = xmldom.getElementsByTagName('status')
+        statusNode = statusNode[0]
+
+        errno = int(statusNode.attributes['error'].nodeValue)
+
+        return errno, statusNode.attributes['desc'].nodeValue
+    except :
+        wx.MessageBox(u'网络连接错误!')
+
+def getSystemInfo():
+    _format = 'soft:KumquatRoot;os:%s;py_ver:%s;wx_ver:%s'
+    return _format%( platform.platform(), platform.python_version(), wx.version() )
+
+class CheckInput(Exception):
+    pass
+
+class FeedbackDlg(wx.Dialog):
+    def __init__(self, parent):
+        wx.Dialog.__init__(
+            self,
+            parent = parent,
+            title = u'意见反馈',
+            size = (300,400)
+        )
+        #标签控件---------------------
+        self.lblLabel = [u'姓名:', u'E-mail:']
+        self.y = 30
+        for lbl in self.lblLabel:
+            wx.StaticText(
+                self,
+                label = lbl ,
+                pos=(30,self.y)
+            )
+            self.y += 40
+
+        #文本框控件-------------------
+        self._txtUserName = wx.TextCtrl(
+            self,
+            pos=(80,28),
+            size = (180, 20),
+        )
+        self._txtUserEmail = wx.TextCtrl(
+            self,
+            pos=(80,68),
+            size = (180, 20),
+        )
+        groupBox = wx.StaticBox(
+            self,
+            label = u'内容(必填)',
+            pos = (20, self.y),
+            size = (255, 200)
+        )
+        self._txtUserContents = wx.TextCtrl(
+            self,
+            pos=(30,self.y + 20),
+            size = (235, 170),
+            style=wx.TE_MULTILINE
+        )
+
+        #按钮控件----------------------
+        self._btnSub = wx.Button(
+            self,
+            label = u"提交",
+            pos = (85, 320),
+            size = (50, 30)
+        )
+        self._btnCancel = wx.Button(
+            self,
+            id = wx.ID_CANCEL,
+            label = u"取消",
+            pos = (155, 320),
+            size = (50, 30)
+        )
+
+        #事件绑定----------------------
+        self._btnSub.Bind(wx.EVT_BUTTON, self.OnSub)
+
+    #事件方法----------------------
+    def OnSub(self, event):
+        if not self._txtUserContents.GetValue():
+            wx.MessageBox(u'反馈内容不能为空!')
+            return
+        errno, statusDesc = submit_feedback( self._txtUserName.Value, self._txtUserEmail.Value, getSystemInfo(), self._txtUserContents.Value )
+
+        wx.MessageBox(statusDesc)
+        if not errno:
+            self.EndModal(wx.ID_OK)
+
+def test():
+    app=wx.PySimpleApp()
+    feedback=FeedbackDlg(None)
+    feedback.ShowModal()
+
+if __name__ == '__main__':
+    test()
