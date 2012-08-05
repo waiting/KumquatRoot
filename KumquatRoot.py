@@ -14,7 +14,7 @@ GlobalLock = threading.Lock()
 # 文档编码
 Encoding = u'utf8'
 # 本地编码
-LocalEncoding = u'gbk'
+LocalEncoding = u'gb18030'
 
 class Limit:
     	# 队列空间限制 0为不限制
@@ -29,15 +29,17 @@ class Limit:
         QueryInterval = 100
 
 
-class App(wx.App):
-    def OnInit( self ):
-        dlg = MainDlg.MainDlg()
-        dlg.ShowModal()
-        return True
+#class App(wx.App):
+#    def OnInit( self ):
+#        dlg = MainDlg.MainDlg()
+#        dlg.ShowModal()
+#        return True
 
 
 def main():
-    app = App(False)
+    app = wx.PySimpleApp()
+    dlg = MainDlg.MainDlg()
+    dlg.ShowModal()
 
 if __name__ == '__main__':
     main()

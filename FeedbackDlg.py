@@ -20,7 +20,7 @@ import platform
 import xml.dom.minidom
 
 def en(x):
-    return x.encode("u8")
+    return x.encode("utf8")
 
 def submit_feedback( username, email, info, content ):
     try:
@@ -52,56 +52,53 @@ def submit_feedback( username, email, info, content ):
         errno = int(statusNode.attributes['error'].nodeValue)
 
         return errno, statusNode.attributes['desc'].nodeValue
-    except :
-        wx.MessageBox(u'网络连接错误!')
+    except:
+        return -1, u'网络连接错误!'
 
-def getSystemInfo():
+def get_system_info():
     _format = 'soft:KumquatRoot;os:%s;py_ver:%s;wx_ver:%s'
     return _format%( platform.platform(), platform.python_version(), wx.version() )
 
-class CheckInput(Exception):
-    pass
-
 class FeedbackDlg(wx.Dialog):
-    def __init__(self, parent):
+    def __init__( self, parent ):
         wx.Dialog.__init__(
             self,
             parent = parent,
             title = u'意见反馈',
-            size = (300,400)
+            size = ( 300, 400 )
         )
         #标签控件---------------------
-        self.lblLabel = [u'姓名:', u'E-mail:']
-        self.y = 30
+        self.lblLabel = [ u'姓名:', u'E-mail:' ]
+        y = 30
         for lbl in self.lblLabel:
             wx.StaticText(
                 self,
-                label = lbl ,
-                pos=(30,self.y)
+                label = lbl,
+                pos = ( 30, y )
             )
-            self.y += 40
+            y += 40
 
         #文本框控件-------------------
         self._txtUserName = wx.TextCtrl(
             self,
-            pos=(80,28),
-            size = (180, 20),
+            pos = ( 80, 28 ),
+            size = ( 180, 20 ),
         )
         self._txtUserEmail = wx.TextCtrl(
             self,
-            pos=(80,68),
-            size = (180, 20),
+            pos = ( 80, 68 ),
+            size = ( 180, 20 ),
         )
         self.groupBox = wx.StaticBox(
             self,
             label = u'内容(必填)[0/1024]',
-            pos = (20, self.y),
-            size = (255, 200)
+            pos = ( 20, y ),
+            size = ( 255, 200 )
         )
         self._txtUserContents = wx.TextCtrl(
             self,
-            pos=(30,self.y + 20),
-            size = (235, 170),
+            pos = ( 30, y + 20 ),
+            size = ( 235, 170 ),
             style = wx.TE_MULTILINE,
         )
         self._txtUserContents.SetMaxLength(1024)
@@ -110,39 +107,40 @@ class FeedbackDlg(wx.Dialog):
         self._btnSub = wx.Button(
             self,
             label = u"提交",
-            pos = (85, 320),
-            size = (50, 30)
+            pos = ( 85, 320 ),
+            size = ( 50, 30 )
         )
         self._btnCancel = wx.Button(
             self,
             id = wx.ID_CANCEL,
             label = u"取消",
-            pos = (155, 320),
-            size = (50, 30)
+            pos = ( 155, 320 ),
+            size = ( 50, 30 )
         )
 
         #事件绑定----------------------
-        self._btnSub.Bind(wx.EVT_BUTTON, self.OnSub)
-        self._txtUserContents.Bind(wx.EVT_TEXT, self.ResetBoxLabel)
+        self._btnSub.Bind( wx.EVT_BUTTON, self.OnSub )
+        self._txtUserContents.Bind( wx.EVT_TEXT, self.ResetBoxLabel )
 
     #事件方法----------------------
-    def ResetBoxLabel(self, event):
-        _length = len(self._txtUserContents.GetValue())
-        self.groupBox.SetLabel(u'内容(必填)[%s/1024]'%str(_length))
+    def ResetBoxLabel( self, event ):
+        length = len(self._txtUserContents.Value)
+        self.groupBox.SetLabel( u'内容(必填)[%d/1024]' % length )
 
     def OnSub(self, event):
-        if not self._txtUserContents.GetValue():
+        if not self._txtUserContents.Value:
             wx.MessageBox(u'反馈内容不能为空!')
             return
-        errno, statusDesc = submit_feedback( self._txtUserName.Value, self._txtUserEmail.Value, getSystemInfo(), self._txtUserContents.Value )
 
-        wx.MessageBox(statusDesc)
+        errno, desc = submit_feedback( self._txtUserName.Value, self._txtUserEmail.Value, get_system_info(), self._txtUserContents.Value )
+
+        wx.MessageBox(desc)
         if not errno:
             self.EndModal(wx.ID_OK)
 
 def test():
-    app=wx.PySimpleApp()
-    feedback=FeedbackDlg(None)
+    app = wx.PySimpleApp()
+    feedback = FeedbackDlg(None)
     feedback.ShowModal()
 
 if __name__ == '__main__':

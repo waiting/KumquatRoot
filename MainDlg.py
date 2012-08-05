@@ -13,6 +13,8 @@ try:
     import xml.dom.minidom
     import NamesListDlg
     import SearchingDlg
+    import FeedbackDlg
+    import AboutDlg
 except ImportError, e:
     print e
 
@@ -201,6 +203,19 @@ class MainDlg(wx.Dialog):
         self.Bind( wx.EVT_BUTTON, self.onBtnNextPage, self._btnNextPage )
         self.Bind( wx.EVT_BUTTON, self.onBtnGoPage, self._btnGoPage )
 
+        self.Bind( wx.EVT_CONTEXT_MENU, self.onContextMenu )
+        #self.Bind( wx.EVT_COMMAND_RANGE() )
+        #wx.EVT_COMMAND_RANGE( self, 1001, 1003, wx.wxEVT_CO )
+        self._popMenu = wx.Menu()
+        self._popMenu.Append( self.MENU_FEEDBACK, u'反馈...' )
+        self._popMenu.Append( self.MENU_ABOUT, u'关于' )
+        self._popMenu.Append( self.MENU_HELP, u'帮助' )
+        self.Bind( wx.EVT_MENU_RANGE, self.onPopupMenu, id = self.MENU_FEEDBACK, id2 = self.MENU_HELP )
+
+    MENU_FEEDBACK = 1001
+    MENU_ABOUT = 1002
+    MENU_HELP = 1003
+
     def loadNamesList( self, isBlack ):
         '加载名单设置'
         try:
@@ -291,7 +306,7 @@ class MainDlg(wx.Dialog):
         params['SearchWords'] = self._txtSearchWords.Value
         params['FilterExtList'] = self.loadNamesList( params['UseListMode'] == 0 ) # 加载过滤名单
         params['RootPath'] = self._txtPathRoot.Value # 搜索路径
-        params['RootPath'] = params['RootPath'] if params['RootPath'] else os.path.abspath(os.path.curdir)
+        params['RootPath'] = params['RootPath'] if params['RootPath'] else unicode( os.path.abspath(os.path.curdir), KumquatRoot.LocalEncoding, u'ignore' )
 
         #清空结果列表
         self.clearResults()
@@ -303,7 +318,7 @@ class MainDlg(wx.Dialog):
         if searchDlg.ShowModal() == wx.ID_ABORT:
             wx.MessageBox( u'搜索终止！', u'搜索状态' )
         else:
-            pass #wx.MessageBox(u'搜索完毕！', u'搜索状态' )
+            pass
 
         self._resultItemsCount = len(self._resultItems) # 取得符合条件的结果数
         self._pageCount = int( math.ceil( float(self._resultItemsCount) / KumquatRoot.Limit.SplitPage ) ) # 页数
@@ -344,6 +359,18 @@ class MainDlg(wx.Dialog):
         if dlg.ShowModal() == wx.ID_OK:
             self.writeNamesList( False, dlg._txtNamesList.Value.splitlines() )
 
+    def onContextMenu( self, evt ):
+        self.PopupMenu(self._popMenu)
+
+    def onPopupMenu( self, evt ):
+        if evt.Id == self.MENU_FEEDBACK:
+            dlg = FeedbackDlg.FeedbackDlg(self)
+            dlg.ShowModal()
+        elif evt.Id == self.MENU_ABOUT:
+            dlg = AboutDlg.AboutDlg(self)
+            dlg.ShowModal()
+        elif evt.Id == self.MENU_HELP:
+            pass
 
 def test():
     app = wx.PySimpleApp()

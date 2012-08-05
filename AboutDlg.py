@@ -101,6 +101,7 @@ class AboutDlg(wx.Dialog):
         #------确定按钮------
         self._btnOK = wx.Button(
             self,
+            id = wx.ID_OK,
             label = u"确定",
             pos = (170, 435),
             size = (60, 30)
