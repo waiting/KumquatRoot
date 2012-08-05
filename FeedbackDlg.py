@@ -8,7 +8,7 @@
 #
 # Created:     29-07-2012
 # Copyright:   (c) Mr.Wid 2012
-# Licence:     <your licence>
+# Licence:
 #-------------------------------------------------------------------------------
 
 import wx
