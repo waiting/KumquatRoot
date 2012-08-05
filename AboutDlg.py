@@ -87,6 +87,25 @@ KumquatRoot_License = u'''用户须知:请仔细阅读本协议(未成年人应�
     邮箱: kumquatsoft@163.com
 '''
 
+KumquatRoot_Others = u'''关于http://www.x86pro.com:
+    X86PRO.COM是一个编程技术文章站点,始建于2009年4月,虽然文章数不算多,但大部分属于原创,我们欢迎有能力的人献文。
+    X86PRO.COM同时也是金桔软件工作室的官方网站。
+
+站长的话:
+    本站先后使用了3个后台系统,2009年是WT自制的WTSite，2010年是用了DedeCMS，今年就用WordPress看看。
+
+    由于WordPress本身的原因不支持IE6,所以您在浏览本站时最好使用其他浏览器,比如Chrome,Firefox,Opera,ie7+。
+
+    还是要强调一下，本站意在为想要学好编程的人提供一个平台，如果您只是想应付考试赚学分，那请您离开，本站不适合您。
+
+    2011年5月左右,本站停开,2012年本站再次开放。
+
+    本站QQ群:38583240,79913713。
+
+金桔软件工作室 ( KumquatSoft )
+联系我们: kumquatsoft@163.com
+'''
+
 class AboutDlg(wx.Dialog):
     def __init__(self, parent):
         wx.Dialog.__init__(
@@ -174,6 +193,7 @@ class AboutDlg(wx.Dialog):
         #显示介绍、协议、其他文本框中的内容
         _txtLicense.SetValue(KumquatRoot_License)
         _txtIntroduction.SetValue(KumquatRoot_Introduction)
+        _txtOthers.SetValue(KumquatRoot_Others)
 
         #------确定按钮------
         self._btnOK = wx.Button(
