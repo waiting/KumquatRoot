@@ -7,6 +7,7 @@
 
 try:
     import os
+    import sys
     import wx
     import KumquatRoot
     import math
@@ -203,18 +204,31 @@ class MainDlg(wx.Dialog):
         self.Bind( wx.EVT_BUTTON, self.onBtnNextPage, self._btnNextPage )
         self.Bind( wx.EVT_BUTTON, self.onBtnGoPage, self._btnGoPage )
 
+        # 弹出菜单
         self.Bind( wx.EVT_CONTEXT_MENU, self.onContextMenu )
-        #self.Bind( wx.EVT_COMMAND_RANGE() )
-        #wx.EVT_COMMAND_RANGE( self, 1001, 1003, wx.wxEVT_CO )
+
         self._popMenu = wx.Menu()
         self._popMenu.Append( self.MENU_FEEDBACK, u'反馈...' )
         self._popMenu.Append( self.MENU_ABOUT, u'关于' )
         self._popMenu.Append( self.MENU_HELP, u'帮助' )
         self.Bind( wx.EVT_MENU_RANGE, self.onPopupMenu, id = self.MENU_FEEDBACK, id2 = self.MENU_HELP )
 
+        if sys.platform == 'win32':
+            # 结果操作菜单
+            self._lstctlResults.Bind( wx.EVT_CONTEXT_MENU, self.onListCtrlContextMenu )
+
+            self._resOprMenu = wx.Menu()
+            self._resOprMenu.Append( self.MENU_RESOPR_RUNFILE, u'运行文件' )
+            self._resOprMenu.Append( self.MENU_RESOPR_OPENDIR, u'打开目录' )
+
+            self.Bind( wx.EVT_MENU_RANGE, self.onResOprMenu, id = self.MENU_RESOPR_RUNFILE, id2 = self.MENU_RESOPR_OPENDIR )
+
     MENU_FEEDBACK = 1001
     MENU_ABOUT = 1002
     MENU_HELP = 1003
+
+    MENU_RESOPR_RUNFILE = 1004
+    MENU_RESOPR_OPENDIR = 1005
 
     def loadNamesList( self, isBlack ):
         '加载名单设置'
@@ -371,6 +385,32 @@ class MainDlg(wx.Dialog):
             dlg.ShowModal()
         elif evt.Id == self.MENU_HELP:
             pass
+
+    def onListCtrlContextMenu( self, evt ):
+        if self._lstctlResults.SelectedItemCount == 1:
+            self.PopupMenu(self._resOprMenu)
+
+    def onResOprMenu( self, evt ):
+        if sys.platform != 'win32':
+            return
+        import win32api
+
+        index = self._lstctlResults.GetNextItem( -1, wx.LIST_NEXT_ALL, wx.LIST_STATE_SELECTED )
+        itemFileName = self._lstctlResults.GetItem( index, 0 )
+        itemFilePath = self._lstctlResults.GetItem( index, 1 )
+        fullPath = itemFilePath.Text + unicode(os.path.sep) + itemFileName.Text
+        filePath = itemFilePath.Text
+
+        try:
+            fullPath = fullPath.encode( KumquatRoot.LocalEncoding, u'ignore' )
+            filePath = filePath.encode( KumquatRoot.LocalEncoding, u'ignore' )
+        except:
+            pass
+
+        if evt.Id == self.MENU_RESOPR_RUNFILE:
+            win32api.WinExec( 'explorer "%s"' % fullPath )
+        elif evt.Id == self.MENU_RESOPR_OPENDIR:
+            win32api.WinExec( 'explorer "%s"' % filePath )
 
 def test():
     app = wx.PySimpleApp()
