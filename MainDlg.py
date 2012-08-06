@@ -6,6 +6,7 @@
 #-----------------------------------------------
 
 try:
+    import re
     import os
     import sys
     import wx
@@ -398,19 +399,27 @@ class MainDlg(wx.Dialog):
         index = self._lstctlResults.GetNextItem( -1, wx.LIST_NEXT_ALL, wx.LIST_STATE_SELECTED )
         itemFileName = self._lstctlResults.GetItem( index, 0 )
         itemFilePath = self._lstctlResults.GetItem( index, 1 )
-        fullPath = itemFilePath.Text + unicode(os.path.sep) + itemFileName.Text
+
         filePath = itemFilePath.Text
+        fileName = itemFileName.Text
+
+        # 判断根目录的情况
+        if re.match( u'^\\w:\\\\$', filePath ) or re.match( u'^/$', filePath ):
+            fullPath = filePath + fileName
+        else:
+            fullPath = filePath + unicode(os.path.sep) + fileName
 
         try:
             fullPath = fullPath.encode( KumquatRoot.LocalEncoding, u'ignore' )
             filePath = filePath.encode( KumquatRoot.LocalEncoding, u'ignore' )
+            fileName = fileName.encode( KumquatRoot.LocalEncoding, u'ignore' )
         except:
             pass
 
         if evt.Id == self.MENU_RESOPR_RUNFILE:
-            win32api.WinExec( 'explorer "%s"' % fullPath )
+            win32api.ShellExecute( self.Handle, "open", fullPath, "", "", 1 )
         elif evt.Id == self.MENU_RESOPR_OPENDIR:
-            win32api.WinExec( 'explorer "%s"' % filePath )
+            win32api.WinExec( 'explorer /select, "%s"' % fullPath )
 
 def test():
     app = wx.PySimpleApp()
