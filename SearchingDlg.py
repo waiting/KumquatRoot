@@ -13,7 +13,6 @@
 # Licence:
 #-------------------------------------------------------------------------------
 try:
-    import types
     import wx
     import threading
     import time
@@ -28,10 +27,12 @@ except ImportError, e:
 
 def searching( filePath, wordsPattern, matchMode ):
     res = False
-
-    f = open( filePath, u'rb' )
-    data = f.read()
-    f.close()
+    try:
+        f = open( filePath, u'rb' )
+        data = f.read()
+        f.close()
+    except IOError:
+        return False
 
     try:
         data = data.decode(KumquatRoot.LocalEncoding)
@@ -133,6 +134,7 @@ def cb_statistic( *args, **kwargs ):
     searchDlg, mainDlg, params = args
     queue = searchDlg._queue
 
+    params['RootPath'] = params['RootPath'].encode(KumquatRoot.LocalEncoding)
     #wx.MessageBox( repr(params['RootPath']) )
 
     for rootPath, dirNames, fileNames in os.walk(params['RootPath']):
@@ -160,7 +162,6 @@ def cb_statistic( *args, **kwargs ):
 
             if KumquatRoot.Limit.TotalFiles > 0 and searchDlg._totalFiles == KumquatRoot.Limit.TotalFiles:
                 break
-
 
     #放入一个None，让搜索线程退出
     queue.put(None)
@@ -303,10 +304,7 @@ class SearchingDlg(wx.Dialog):
 
     def setCurrentSearch( self, content ):
         with KumquatRoot.GlobalLock:
-            try:
-                self._currentSearch = content
-            except:
-                self._currentSearch = u''
+            self._currentSearch = content
 
     def getCurrentSearch( self ):
         with KumquatRoot.GlobalLock:
@@ -448,7 +446,7 @@ def test():
         'RootPath':u'F:\\' if os.path.sep == '\\' else u'/',
         'FilterExtList':[],
         'IsUseMatchName':False,
-        'IsSearchWords':True,
+        'IsSearchWords':False,
         'SearchWords':u'python',
         'UseMatchMode':0
     }, None )
