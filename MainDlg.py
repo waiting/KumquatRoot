@@ -211,7 +211,7 @@ class MainDlg(wx.Dialog):
         self._popMenu = wx.Menu()
         self._popMenu.Append( self.MENU_FEEDBACK, u'反馈...' )
         self._popMenu.Append( self.MENU_ABOUT, u'关于' )
-        self._popMenu.Append( self.MENU_HELP, u'帮助' )
+        #self._popMenu.Append( self.MENU_HELP, u'帮助' )
         self.Bind( wx.EVT_MENU_RANGE, self.onPopupMenu, id = self.MENU_FEEDBACK, id2 = self.MENU_HELP )
 
         if sys.platform == 'win32':
