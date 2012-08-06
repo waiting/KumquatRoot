@@ -133,35 +133,56 @@ class AboutDlg(wx.Dialog):
             self,
             label = u'信息',
             pos = (15, 110),
-            size = (365, 130)
+            size = (365, 140)
         )
         self._lblVersion = wx.StaticText(
             self,
             label = u'版本:    1.0.0',
-            pos = (30, 140 )
+            pos = (30, 130 )
         )
         self._lblAuthor = wx.StaticText(
             self,
             label = u'作者:    WT、Mr.Wid  (金桔软件工作室)',
-            pos = (30, 160 )
+            pos = (30, 150 )
         )
         self._lblWTEmail = wx.StaticText(
             self,
-            label = u'E-mail:  zth555@qq.com (WT)   mr_wid@163.com (Mr.Wid)\n'+' '*11+\
-                    u'kumquatsoft@163.com (金桔软件)',
-            pos = (30, 180 )
+            label = u'E-mail:',
+            pos = (30, 170 )
         )
+        self._lblLinkWT = wx.HyperlinkCtrl(
+            self,
+            id = -1,
+            label = u'zth555@qq.com (WT)',
+            url = u'mailto:zth555@qq.com',
+            pos = (75, 170)
+            )
+        self._lblLinkWid = wx.HyperlinkCtrl(
+            self,
+            id = -1,
+            label = u'mr_wid@163.com (Mr.Wid)',
+            url = u'mailto:mr_wid@163.com',
+            pos = (75, 185)
+            )
+        self._lblLinkKum = wx.HyperlinkCtrl(
+            self,
+            id = -1,
+            label = u'kumquatsoft@163.com (金桔软件)',
+            url = u'mailto:kumquatsoft@163.com',
+            pos = (75, 200)
+            )
+
         self._lblWebsite = wx.StaticText(
             self,
             label = u'网址:    ',
-            pos = (30, 215 )
+            pos = (30, 225 )
         )
         self._lblLinkx86 = wx.HyperlinkCtrl(
             self,
             id = -1,
             label = u'http://www.x86pro.com',
             url = u'http://www.x86pro.com',
-            pos = (75, 215)
+            pos = (75, 225)
             )
 
         #-------选项卡-------
