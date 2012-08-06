@@ -19,8 +19,8 @@ setup(
     version = "1.0.0",
     description = "KumquatRoot files search",
     name = "KumquatRoot",
-    options = options,
-    zipfile = None,
+    #options = options,
+    #zipfile = None,
     windows = [{
         'script':'KumquatRoot.py',
         'icon_resources':[( 1, 'KumquatRoot.ico' )]
@@ -28,5 +28,6 @@ setup(
     data_files = [
         'KumquatRoot.ico',
         'KumquatRoot_font.png',
+        'KumquatRoot_Help.html',
     ],
 )

@@ -109,7 +109,7 @@ def cb_searching( *args, **kwargs ):
         isConform = False
         if isDoSearch:
             if params['IsSearchWords'] and params['SearchWords']:
-                if fileSize != None:
+                if fileSize != None and fileSize > 0:
                     # 符合大小才搜索
                     if not ( KumquatRoot.Limit.FileSize > 0 and fileSize > KumquatRoot.Limit.FileSize ):
                         isConform = searching( filePath, params['SearchWords'], params['UseMatchMode'] )
