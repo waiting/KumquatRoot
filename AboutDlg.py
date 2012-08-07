@@ -32,7 +32,6 @@ KumquatRoot_Introduction = u'''KumquatRoot是一款完全免费的绿色软件,�
     在主界面使用鼠标右键即可弹出菜单栏,在"反馈"选项中,可以反馈您对本软件的建议以及意见,我们将努力按照您的建议以及意见对软件进行维护,力争为您提供更好的服务.
 
 金桔软件工作室 ( KumquatSoft )
-联系我们: kumquatsoft@163.com
 '''
 
 KumquatRoot_License = u'''用户须知:请仔细阅读本协议(未成年人应当在其法定监护人陪同下阅读).
@@ -83,8 +82,7 @@ KumquatRoot_License = u'''用户须知:请仔细阅读本协议(未成年人应�
         本协议的生效、履行、解释及争议的解决均适用中华人民共和国法律,本协议中的条款因与中华人民共和国现行法律相抵触的部分自动无效,但不影响其他部分的效力.
 
 联系我们:
-    网站: http://www.x86pro.com
-    邮箱: kumquatsoft@163.com
+    网站: http://www.x86pro.com/kumquat/kumquatroot
 '''
 
 KumquatRoot_Others = u'''关于http://www.x86pro.com:
@@ -103,7 +101,6 @@ KumquatRoot_Others = u'''关于http://www.x86pro.com:
     本站QQ群:38583240,79913713。
 
 金桔软件工作室 ( KumquatSoft )
-联系我们: kumquatsoft@163.com
 '''
 
 class AboutDlg(wx.Dialog):
@@ -164,13 +161,13 @@ class AboutDlg(wx.Dialog):
             url = u'mailto:mr_wid@163.com',
             pos = (75, 185)
             )
-        self._lblLinkKum = wx.HyperlinkCtrl(
-            self,
-            id = -1,
-            label = u'kumquatsoft@163.com (金桔软件)',
-            url = u'mailto:kumquatsoft@163.com',
-            pos = (75, 200)
-            )
+        #self._lblLinkKum = wx.HyperlinkCtrl(
+        #    self,
+        #    id = -1,
+        #    label = u'kumquatsoft@163.com (金桔软件)',
+        #    url = u'mailto:kumquatsoft@163.com',
+        #    pos = (75, 200)
+        #    )
 
         self._lblWebsite = wx.StaticText(
             self,

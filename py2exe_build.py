@@ -19,7 +19,7 @@ setup(
     version = "1.0.0",
     description = "KumquatRoot files search",
     name = "KumquatRoot",
-    #options = options,
+    options = options,
     #zipfile = None,
     windows = [{
         'script':'KumquatRoot.py',
