@@ -50,12 +50,12 @@ def searching( filePath, wordsPattern, matchMode ):
     return res
 
 def bytes_unit( size ):
-	if size < 1024:
-		return unicode(size) + u'B'
-	elif size < 1024 * 1024:
-		return unicode( math.ceil( float(size) * 100 / 1024 ) / 100 ) + u'KB'
-	else:
-		return unicode( math.ceil( float(size) * 100 / ( 1024 * 1024 ) ) / 100 ) + u'MB'
+    if size < 1024:
+        return unicode(size) + u'B'
+    elif size < 1024 * 1024:
+        return unicode( math.ceil( float(size) * 100 / 1024 ) / 100 ) + u'KB'
+    else:
+        return unicode( math.ceil( float(size) * 100 / ( 1024 * 1024 ) ) / 100 ) + u'MB'
 
 # 搜索线程
 def cb_searching( *args, **kwargs ):

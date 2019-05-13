@@ -24,12 +24,12 @@ else:
 sys.setdefaultencoding(LocalEncoding)
 
 class Limit:
-    	# 队列空间限制 0为不限制
-    	QueueCount = 0
-    	# 限制文件总数 0为不限制
-    	TotalFiles = 0
-    	# 限制文件大小，超过这个大小则不搜索 0为不限制
-       	FileSize = 1024 * 1024 * 5 # 5MB
+        # 队列空间限制 0为不限制
+        QueueCount = 0
+        # 限制文件总数 0为不限制
+        TotalFiles = 0
+        # 限制文件大小，超过这个大小则不搜索 0为不限制
+        FileSize = 1024 * 1024 * 5 # 5MB
         # 搜索结果分页，0为不分页
         SplitPage = 500
         # 查询间隔(ms)
